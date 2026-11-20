@@ -312,7 +312,9 @@ def test_config_show_prints_the_settings(config_home: Path) -> None:
     assert runner.invoke(app, ["config", "init"]).exit_code == 0
     shown = runner.invoke(app, ["config", "show"])
     assert shown.exit_code == 0
-    assert "ghcr.io" in shown.stdout
+    payload = json.loads(shown.stdout)
+    assert payload["github"]["registry_url"] == "https://ghcr.io"
+    assert payload["github"]["api_url"] == "https://api.github.com"
 
 
 def test_package_remove_and_set_group(config_home: Path) -> None:
