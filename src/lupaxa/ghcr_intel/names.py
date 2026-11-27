@@ -12,9 +12,7 @@ def parse_image(value: str) -> tuple[str, str]:
 
     owner, separator, name = value.strip().partition("/")
     if separator == "" or owner == "" or name == "" or "/" in owner:
-        raise ConfigError(
-            "An image is owner/name. A slash after the owner is part of the name.",
-        )
+        raise ConfigError("An image is owner/name. A slash after the owner is part of the name.")
     return owner, name
 
 

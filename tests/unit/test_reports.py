@@ -14,21 +14,13 @@ _FIELDS = ("Package", "Description", "Status", "Updated")
 
 def test_markdown_starts_with_the_title_and_escapes_cells() -> None:
     view = _image(description="a|b\nsecond")
-    rendered = render_report(
-        [view],
-        "markdown",
-        date_format=view.date_format,
-        fields=_FIELDS,
-    )
+    rendered = render_report([view], "markdown", date_format=view.date_format, fields=_FIELDS)
     assert rendered.splitlines() == [
         "# GHCR Intel Report",
         "",
         "| Package | Description | Status | Updated |",
         "| --- | --- | --- | --- |",
-        (
-            "| hello-world | a\\|b<br>second | Current | "
-            f"{field_text(view, 'Updated', detail=False)} |"
-        ),
+        (f"| hello-world | a\\|b<br>second | Current | {field_text(view, 'Updated', detail=False)} |"),
     ]
 
 
@@ -36,37 +28,18 @@ def test_json_uses_human_labels_and_field_text() -> None:
     view = _image(description="a|b\nsecond", status_detail="not the list word")
     config = AppConfig.model_validate({"version": 1})
     fields = resolve_layout(config.display, "default").list_fields
-    payload = json.loads(
-        render_report(
-            [view],
-            "json",
-            date_format=config.display.date_format,
-            fields=fields,
-        ),
-    )
+    payload = json.loads(render_report([view], "json", date_format=config.display.date_format, fields=fields))
     assert list(payload[0]) == list(fields)
     for label in fields:
         assert payload[0][label] == field_text(view, label, detail=False)
-    described = json.loads(
-        render_report(
-            [view],
-            "json",
-            date_format=view.date_format,
-            fields=("Description", "Status"),
-        ),
-    )
+    described = json.loads(render_report([view], "json", date_format=view.date_format, fields=("Description", "Status")))
     assert described[0]["Description"] == "a|b\nsecond"
     assert described[0]["Status"] == "Current"
 
 
 def test_csv_uses_the_same_cell_text() -> None:
     view = _image()
-    rendered = render_report(
-        [view],
-        "csv",
-        date_format=view.date_format,
-        fields=("Package", "Status"),
-    )
+    rendered = render_report([view], "csv", date_format=view.date_format, fields=("Package", "Status"))
     assert rendered.splitlines() == [
         "Package,Status",
         "hello-world,Current",
@@ -75,12 +48,7 @@ def test_csv_uses_the_same_cell_text() -> None:
 
 def test_table_is_uncoloured_text() -> None:
     view = _image(description="a|b\nsecond")
-    rendered = render_report(
-        [view],
-        "table",
-        date_format=view.date_format,
-        fields=("Package", "Description"),
-    )
+    rendered = render_report([view], "table", date_format=view.date_format, fields=("Package", "Description"))
     assert "\x1b" not in rendered
     assert "Package" in rendered
     assert "hello-world" in rendered
@@ -91,12 +59,7 @@ def test_table_is_uncoloured_text() -> None:
 def test_render_report_rejects_an_unknown_format() -> None:
     view = _image()
     with pytest.raises(UsageError, match="Unknown format yaml") as caught:
-        render_report(
-            [view],
-            "yaml",
-            date_format=view.date_format,
-            fields=("Package",),
-        )
+        render_report([view], "yaml", date_format=view.date_format, fields=("Package",))
     assert caught.value.exit_code == 2
 
 
@@ -121,39 +84,21 @@ def test_failing_includes_current_when_architectures_error_is_forbidden() -> Non
 def test_audit_json_includes_stale_and_forbidden_architectures() -> None:
     stale = _image(status="Stale", package="old")
     current = _image(status="Current", package="fresh", architectures_error="")
-    blocked = _image(
-        status="Current",
-        package="blocked",
-        architectures_error="Forbidden",
-    )
-    rendered = audit(
-        [stale, current, blocked],
-        "json",
-        date_format=stale.date_format,
-        fields=("Package", "Status", "Architectures"),
-    )
+    blocked = _image(status="Current", package="blocked", architectures_error="Forbidden")
+    rendered = audit([stale, current, blocked], "json", date_format=stale.date_format, fields=("Package", "Status", "Architectures"))
     rows = json.loads(rendered)
     assert [row["Package"] for row in rows] == ["old", "blocked"]
     assert rows[0]["Status"] == field_text(stale, "Status", detail=False)
     assert rows[0]["Status"] == "Stale"
     assert rows[1]["Status"] == "Current"
-    assert rows[1]["Architectures"] == field_text(
-        blocked,
-        "Architectures",
-        detail=False,
-    )
+    assert rows[1]["Architectures"] == field_text(blocked, "Architectures", detail=False)
     assert rows[1]["Architectures"] == "Forbidden"
 
 
 def test_audit_table_omits_a_current_image() -> None:
     stale = _image(status="Stale", package="old")
     current = _image(status="Current", package="fresh")
-    rendered = audit(
-        [stale, current],
-        "table",
-        date_format=stale.date_format,
-        fields=("Package",),
-    )
+    rendered = audit([stale, current], "table", date_format=stale.date_format, fields=("Package",))
     assert "\x1b" not in rendered
     assert "old" in rendered
     assert "fresh" not in rendered
@@ -163,12 +108,7 @@ def test_audit_table_omits_a_current_image() -> None:
 def test_audit_rejects_formats_other_than_table_and_json(output_format: str) -> None:
     view = _image()
     with pytest.raises(UsageError, match=f"Unknown format {output_format}") as caught:
-        audit(
-            [view],
-            output_format,
-            date_format=view.date_format,
-            fields=("Package",),
-        )
+        audit([view], output_format, date_format=view.date_format, fields=("Package",))
     assert caught.value.exit_code == 2
 
 

@@ -10,13 +10,7 @@ __all__ = [
     "UNGROUPED",
 ]
 
-CHECK_NAMES: Final[tuple[str, ...]] = (
-    "metadata",
-    "tags",
-    "digests",
-    "architectures",
-    "stale",
-)
+CHECK_NAMES: Final[tuple[str, ...]] = ("metadata", "tags", "digests", "architectures", "stale")
 
 DEFAULT_PROFILE: Final[str] = "standard"
 UNGROUPED: Final[str] = "ungrouped"

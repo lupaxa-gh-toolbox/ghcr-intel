@@ -35,16 +35,7 @@ class PackageFetch:
     retry_after: float | None = None
 
 
-async def fetch_package(
-    client: httpx.AsyncClient,
-    *,
-    api_url: str,
-    owner: str,
-    name: str,
-    version_limit: int,
-    want_versions: bool,
-    github_token: str,
-) -> PackageFetch:
+async def fetch_package(client: httpx.AsyncClient, *, api_url: str, owner: str, name: str, version_limit: int, want_versions: bool, github_token: str) -> PackageFetch:
     """
     Read a container package from the org endpoint, then the user endpoint.
 
@@ -59,32 +50,12 @@ async def fetch_package(
     """
 
     segment = api_package_segment(name)
-    response, endpoint = await _metadata(
-        client,
-        api_url,
-        owner,
-        segment,
-        github_token,
-    )
+    response, endpoint = await _metadata(client, api_url, owner, segment, github_token)
     fetched = _from_metadata(response, endpoint)
     if fetched.metadata_status != 200 or not want_versions:
         return fetched
-    versions_body, versions_error, versions_status, delay = await _versions(
-        client,
-        api_url,
-        owner,
-        segment,
-        endpoint,
-        version_limit,
-        github_token,
-    )
-    return replace(
-        fetched,
-        versions_body=versions_body,
-        versions_error=versions_error,
-        versions_status=versions_status,
-        retry_after=delay if delay is not None else fetched.retry_after,
-    )
+    versions_body, versions_error, versions_status, delay = await _versions(client, api_url, owner, segment, endpoint, version_limit, github_token)
+    return replace(fetched, versions_body=versions_body, versions_error=versions_error, versions_status=versions_status, retry_after=delay if delay is not None else fetched.retry_after)
 
 
 def _request_headers(github_token: str) -> dict[str, str]:
@@ -94,24 +65,12 @@ def _request_headers(github_token: str) -> dict[str, str]:
     }
 
 
-async def _metadata(
-    client: httpx.AsyncClient,
-    api_url: str,
-    owner: str,
-    segment: str,
-    github_token: str,
-) -> tuple[httpx.Response, str]:
+async def _metadata(client: httpx.AsyncClient, api_url: str, owner: str, segment: str, github_token: str) -> tuple[httpx.Response, str]:
     headers = _request_headers(github_token)
-    response = await client.get(
-        _package_url(api_url, "org", owner, segment),
-        headers=headers,
-    )
+    response = await client.get(_package_url(api_url, "org", owner, segment), headers=headers)
     if response.status_code != 404:
         return response, "org"
-    user = await client.get(
-        _package_url(api_url, "user", owner, segment),
-        headers=headers,
-    )
+    user = await client.get(_package_url(api_url, "user", owner, segment), headers=headers)
     return user, "user"
 
 
@@ -129,22 +88,8 @@ def _from_metadata(response: httpx.Response, endpoint: str) -> PackageFetch:
     return _fetch(status, body, error, endpoint, delay)
 
 
-def _fetch(
-    status: int,
-    body: dict[str, object] | None,
-    error: str | None,
-    endpoint: str,
-    retry_after: float | None,
-) -> PackageFetch:
-    return PackageFetch(
-        status,
-        body,
-        error,
-        None,
-        None,
-        endpoint,
-        retry_after=retry_after,
-    )
+def _fetch(status: int, body: dict[str, object] | None, error: str | None, endpoint: str, retry_after: float | None) -> PackageFetch:
+    return PackageFetch(status, body, error, None, None, endpoint, retry_after=retry_after)
 
 
 def _package_url(api_url: str, endpoint: str, owner: str, segment: str) -> str:
@@ -154,20 +99,10 @@ def _package_url(api_url: str, endpoint: str, owner: str, segment: str) -> str:
 
 
 async def _versions(
-    client: httpx.AsyncClient,
-    api_url: str,
-    owner: str,
-    segment: str,
-    endpoint: str,
-    version_limit: int,
-    github_token: str,
+    client: httpx.AsyncClient, api_url: str, owner: str, segment: str, endpoint: str, version_limit: int, github_token: str
 ) -> tuple[list[object] | None, str | None, int, float | None]:
     url = f"{_package_url(api_url, endpoint, owner, segment)}/versions"
-    response = await client.get(
-        url,
-        params={"per_page": version_limit},
-        headers=_request_headers(github_token),
-    )
+    response = await client.get(url, params={"per_page": version_limit}, headers=_request_headers(github_token))
     status = response.status_code
     delay = limit_delay(status, response.headers)
     if status in {401, 403}:

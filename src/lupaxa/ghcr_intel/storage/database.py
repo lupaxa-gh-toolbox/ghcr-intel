@@ -72,23 +72,9 @@ class Database:
             ).fetchone()
         if row is None:
             return None
-        return Document(
-            package=str(row[0]),
-            category=str(row[1]),
-            body=str(row[2]),
-            fetched_at=float(row[3]),
-            error=None if row[4] is None else str(row[4]),
-        )
+        return Document(package=str(row[0]), category=str(row[1]), body=str(row[2]), fetched_at=float(row[3]), error=None if row[4] is None else str(row[4]))
 
-    def put(
-        self,
-        package: str,
-        category: str,
-        *,
-        body: str,
-        fetched_at: float,
-        error: str | None,
-    ) -> None:
+    def put(self, package: str, category: str, *, body: str, fetched_at: float, error: str | None) -> None:
         """Insert or replace one document."""
 
         with self._session() as connection:
@@ -144,7 +130,7 @@ class Database:
                 WHERE finished_at IS NOT NULL
                 ORDER BY finished_at DESC
                 LIMIT 1
-                """,
+                """
             ).fetchone()
         if row is None or row[0] is None:
             return None

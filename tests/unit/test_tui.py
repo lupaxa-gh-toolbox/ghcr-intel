@@ -36,16 +36,10 @@ def _snapshot(root: Path) -> dict[str, str]:
 
 def _prompts(screen: ViewPicker) -> list[str]:
     options = screen.query_one(OptionList)
-    return [
-        str(options.get_option_at_index(index).prompt)
-        for index in range(options.option_count)
-    ]
+    return [str(options.get_option_at_index(index).prompt) for index in range(options.option_count)]
 
 
-async def test_tui_lists_one_image_and_switches_views_for_the_session(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+async def test_tui_lists_one_image_and_switches_views_for_the_session(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("GHCR_INTEL_CONFIG_DIR", str(tmp_path))
     monkeypatch.setenv("GHCR_INTEL_DATA_DIR", str(tmp_path / "data"))
     monkeypatch.delenv("GHCR_INTEL_CONFIG", raising=False)
@@ -115,10 +109,7 @@ async def test_tui_lists_one_image_and_switches_views_for_the_session(
         assert _snapshot(tmp_path) == before
 
 
-async def test_tui_search_filters_the_table(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+async def test_tui_search_filters_the_table(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("GHCR_INTEL_CONFIG_DIR", str(tmp_path))
     monkeypatch.setenv("GHCR_INTEL_DATA_DIR", str(tmp_path / "data"))
     monkeypatch.delenv("GHCR_INTEL_CONFIG", raising=False)
@@ -166,10 +157,7 @@ def test_footer_uses_the_same_keys_as_the_other_intel_tools() -> None:
     ]
 
 
-async def test_profiles_config_and_sync_use_the_footer_keys(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+async def test_profiles_config_and_sync_use_the_footer_keys(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("GHCR_INTEL_CONFIG_DIR", str(tmp_path))
     monkeypatch.setenv("GHCR_INTEL_DATA_DIR", str(tmp_path / "data"))
     monkeypatch.delenv("GHCR_INTEL_CONFIG", raising=False)
@@ -180,14 +168,8 @@ async def test_profiles_config_and_sync_use_the_footer_keys(
     async def finished(*_args: object, **_kwargs: object) -> SyncReport:
         return SyncReport(incomplete=False)
 
-    monkeypatch.setattr(
-        "lupaxa.ghcr_intel.auth.token_from_gh",
-        lambda: "token",
-    )
-    monkeypatch.setattr(
-        "lupaxa.ghcr_intel.sync.engine.synchronise",
-        finished,
-    )
+    monkeypatch.setattr("lupaxa.ghcr_intel.auth.token_from_gh", lambda: "token")
+    monkeypatch.setattr("lupaxa.ghcr_intel.sync.engine.synchronise", finished)
 
     interface = IntelTui(loaded)
     async with interface.run_test() as pilot:

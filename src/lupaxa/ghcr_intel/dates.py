@@ -12,11 +12,7 @@ __all__ = [
 ]
 
 DEFAULT_DATE_FORMAT = "DD/MM/YYYY HH:mm UTC"
-_MESSAGE = (
-    "display.date_format must contain YYYY, MM, and DD once each. "
-    "HH and mm are optional and must appear together. "
-    "ss and UTC are optional with the time."
-)
+_MESSAGE = "display.date_format must contain YYYY, MM, and DD once each. HH and mm are optional and must appear together. ss and UTC are optional with the time."
 _TOKEN = re.compile(r"YYYY|MM|DD|HH|SS|UTC", re.IGNORECASE)
 
 
@@ -87,14 +83,7 @@ def format_date(value: str, pattern: str) -> str:
     minute = moment.strftime("%M") if has_time else "--"
     second = moment.strftime("%S") if has_time else "--"
     text = require_date_format(pattern)
-    return (
-        text.replace("YYYY", moment.strftime("%Y"))
-        .replace("MM", moment.strftime("%m"))
-        .replace("DD", moment.strftime("%d"))
-        .replace("HH", hour)
-        .replace("mm", minute)
-        .replace("ss", second)
-    )
+    return text.replace("YYYY", moment.strftime("%Y")).replace("MM", moment.strftime("%m")).replace("DD", moment.strftime("%d")).replace("HH", hour).replace("mm", minute).replace("ss", second)
 
 
 def _parse_instant(value: str) -> tuple[datetime, bool] | None:
@@ -102,12 +91,7 @@ def _parse_instant(value: str) -> tuple[datetime, bool] | None:
         return None
     if len(value) == 10:
         try:
-            moment = datetime(
-                int(value[0:4]),
-                int(value[5:7]),
-                int(value[8:10]),
-                tzinfo=UTC,
-            )
+            moment = datetime(int(value[0:4]), int(value[5:7]), int(value[8:10]), tzinfo=UTC)
         except ValueError:
             return None
         return moment, False

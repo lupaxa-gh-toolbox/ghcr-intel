@@ -45,7 +45,7 @@ RIGHT_ALIGNED: Final[frozenset[str]] = frozenset(
     {
         "Tag count",
         "Versions fetched",
-    },
+    }
 )
 
 
@@ -60,15 +60,7 @@ class Layout:
 def hardcoded_list() -> tuple[str, ...]:
     """Return the seven default list columns."""
 
-    return (
-        "Organisation",
-        "Package",
-        "Visibility",
-        "Status",
-        "Updated",
-        "Newest tag",
-        "Linked repository",
-    )
+    return ("Organisation", "Package", "Visibility", "Status", "Updated", "Newest tag", "Linked repository")
 
 
 def resolve_layout(display: DisplaySettings, name: str) -> Layout:
@@ -86,9 +78,7 @@ def resolve_layout(display: DisplaySettings, name: str) -> Layout:
     entry = display.views.get(name)
     if entry is None:
         return Layout(hardcoded_list(), None)
-    list_fields = (
-        hardcoded_list() if entry.list is None else _catalogue_labels(entry.list)
-    )
+    list_fields = hardcoded_list() if entry.list is None else _catalogue_labels(entry.list)
     detail_fields = None if entry.detail is None else _catalogue_labels(entry.detail)
     return Layout(list_fields, detail_fields)
 

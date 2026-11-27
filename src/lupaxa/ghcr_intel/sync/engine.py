@@ -16,17 +16,9 @@ from lupaxa.ghcr_intel.config.paths import data_directory
 from lupaxa.ghcr_intel.config.profiles import ConfigProfiles, resolve_profile
 from lupaxa.ghcr_intel.errors import AuthError, UsageError
 from lupaxa.ghcr_intel.ghcr.packages import PackageFetch, fetch_package as read_package
-from lupaxa.ghcr_intel.ghcr.registry import (
-    ManifestFetch,
-    fetch_manifest as read_manifest,
-)
+from lupaxa.ghcr_intel.ghcr.registry import ManifestFetch, fetch_manifest as read_manifest
 from lupaxa.ghcr_intel.storage.database import Database, Document
-from lupaxa.ghcr_intel.sync.readings import (
-    StaleResult,
-    read_versions,
-    stale_result,
-    status_text,
-)
+from lupaxa.ghcr_intel.sync.readings import StaleResult, read_versions, stale_result, status_text
 
 __all__ = [
     "SyncReport",
@@ -44,33 +36,14 @@ _FAILED = "The request failed."
 class PackageReader(Protocol):
     """Injected package reader. Tests pass a fake. The default calls GitHub."""
 
-    async def __call__(
-        self,
-        client: httpx.AsyncClient,
-        *,
-        api_url: str,
-        owner: str,
-        name: str,
-        version_limit: int,
-        want_versions: bool,
-        github_token: str,
-    ) -> PackageFetch:
+    async def __call__(self, client: httpx.AsyncClient, *, api_url: str, owner: str, name: str, version_limit: int, want_versions: bool, github_token: str) -> PackageFetch:
         """Read one package."""
 
 
 class ManifestReader(Protocol):
     """Injected manifest reader. Tests pass a fake. The default calls ghcr.io."""
 
-    async def __call__(
-        self,
-        client: httpx.AsyncClient,
-        *,
-        registry_url: str,
-        owner: str,
-        name: str,
-        tag: str,
-        github_token: str,
-    ) -> ManifestFetch:
+    async def __call__(self, client: httpx.AsyncClient, *, registry_url: str, owner: str, name: str, tag: str, github_token: str) -> ManifestFetch:
         """Read one manifest."""
 
 
@@ -89,10 +62,7 @@ class SyncReport:
     skipped: int = 0
     rate_pauses: int = 0
     rate_wait: float = 0.0
-    on_progress: Callable[[SyncReport], None] | None = field(
-        default=None,
-        repr=False,
-    )
+    on_progress: Callable[[SyncReport], None] | None = field(default=None, repr=False)
 
 
 @dataclass
@@ -171,29 +141,12 @@ async def synchronise(
     run_id = store.begin_run(now)
     try:
         async with httpx.AsyncClient(timeout=config.sync.timeout) as client:
-            job = _Job(
-                config,
-                job_profiles,
-                store,
-                client,
-                token,
-                force,
-                now,
-                package_reader,
-                manifest_reader,
-                report,
-                width,
-                _Pause(),
-            )
+            job = _Job(config, job_profiles, store, client, token, force, now, package_reader, manifest_reader, report, width, _Pause())
             _notify(report)
             await _run_images(job, active)
     finally:
         report.elapsed = time.monotonic() - started
-        store.finish_run(
-            run_id,
-            now,
-            json.dumps({"images": len(packages), "incomplete": report.incomplete}),
-        )
+        store.finish_run(run_id, now, json.dumps({"images": len(packages), "incomplete": report.incomplete}))
     return report
 
 
@@ -262,40 +215,20 @@ async def _sync_package(job: _Job, package: PackageSpec) -> bool:
             versions = _put_versions(job, key, fetched)
         if _writes_package(enabled, fetched):
             _put_metadata(job, package, key, fetched, versions, enabled, want_versions)
-    manifest_failed = await _sync_manifest(
-        job,
-        package,
-        key,
-        versions,
-        enabled,
-        want_versions,
-    )
+    manifest_failed = await _sync_manifest(job, package, key, versions, enabled, want_versions)
     return _package_failed(fetched, requested_versions=need_versions) or manifest_failed
 
 
-async def _read_with_retries(
-    job: _Job,
-    package: PackageSpec,
-    *,
-    want_versions: bool,
-) -> PackageFetch:
+async def _read_with_retries(job: _Job, package: PackageSpec, *, want_versions: bool) -> PackageFetch:
     attempts = job.config.sync.retries + 1
     fetched: PackageFetch | None = None
     for _attempt in range(attempts):
         await _wait_for_limit(job)
         _note_request(job)
         fetched = await job.read_package(
-            job.client,
-            api_url=job.config.github.api_url,
-            owner=package.owner,
-            name=package.name,
-            version_limit=job.config.sync.version_limit,
-            want_versions=want_versions,
-            github_token=job.token,
+            job.client, api_url=job.config.github.api_url, owner=package.owner, name=package.name, version_limit=job.config.sync.version_limit, want_versions=want_versions, github_token=job.token
         )
-        if not _retryable(fetched.metadata_status) and not _retryable(
-            fetched.versions_status,
-        ):
+        if not _retryable(fetched.metadata_status) and not _retryable(fetched.versions_status):
             return fetched
         _hold_limit(job, fetched.retry_after)
     if fetched is None:
@@ -303,14 +236,7 @@ async def _read_with_retries(
     return fetched
 
 
-async def _sync_manifest(
-    job: _Job,
-    package: PackageSpec,
-    key: str,
-    versions: Document | None,
-    enabled: dict[str, bool],
-    want_versions: bool,
-) -> bool:
+async def _sync_manifest(job: _Job, package: PackageSpec, key: str, versions: Document | None, enabled: dict[str, bool], want_versions: bool) -> bool:
     if not enabled["architectures"] or not want_versions:
         return False
     page = read_versions(_items(versions), limit=job.config.sync.version_limit)
@@ -323,75 +249,33 @@ async def _sync_manifest(
     fetched = await _manifest_with_retries(job, package, page.newest_tag)
     if fetched.error == "Unknown" and _successful(current) and current.body != "":
         return True
-    job.database.put(
-        key,
-        "manifest",
-        body=json.dumps({"platforms": list(fetched.platforms)}),
-        fetched_at=job.now,
-        error=fetched.error,
-    )
+    job.database.put(key, "manifest", body=json.dumps({"platforms": list(fetched.platforms)}), fetched_at=job.now, error=fetched.error)
     return fetched.error == "Unknown"
 
 
-async def _manifest_with_retries(
-    job: _Job,
-    package: PackageSpec,
-    tag: str,
-) -> ManifestFetch:
+async def _manifest_with_retries(job: _Job, package: PackageSpec, tag: str) -> ManifestFetch:
     attempts = job.config.sync.retries + 1
     fetched = ManifestFetch((), "Unknown")
     for _attempt in range(attempts):
         await _wait_for_limit(job)
         _note_request(job)
-        fetched = await job.read_manifest(
-            job.client,
-            registry_url=job.config.github.registry_url,
-            owner=package.owner,
-            name=package.name,
-            tag=tag,
-            github_token=job.token,
-        )
+        fetched = await job.read_manifest(job.client, registry_url=job.config.github.registry_url, owner=package.owner, name=package.name, tag=tag, github_token=job.token)
         if fetched.error != "Unknown":
             return fetched
         _hold_limit(job, fetched.retry_after)
     return fetched
 
 
-def _put_metadata(
-    job: _Job,
-    package: PackageSpec,
-    key: str,
-    fetched: PackageFetch,
-    versions: Document | None,
-    enabled: dict[str, bool],
-    want_versions: bool,
-) -> None:
+def _put_metadata(job: _Job, package: PackageSpec, key: str, fetched: PackageFetch, versions: Document | None, enabled: dict[str, bool], want_versions: bool) -> None:
     if _keeps_success(job, key, "metadata", fetched.metadata_status):
         return
     source = fetched.metadata_body if fetched.metadata_body is not None else {}
     versions_error = _versions_error(versions, want_versions=want_versions)
     word, detail = _status(
-        job,
-        source,
-        enabled,
-        http_status=fetched.metadata_status,
-        metadata_error=fetched.metadata_error,
-        versions_error=versions_error,
-        want_versions=want_versions,
-        versions=versions,
+        job, source, enabled, http_status=fetched.metadata_status, metadata_error=fetched.metadata_error, versions_error=versions_error, want_versions=want_versions, versions=versions
     )
     job.database.put(
-        key,
-        "metadata",
-        body=_metadata_body(
-            source,
-            fallback_name=package.name,
-            http_status=fetched.metadata_status,
-            status=word,
-            detail=detail,
-        ),
-        fetched_at=job.now,
-        error=fetched.metadata_error,
+        key, "metadata", body=_metadata_body(source, fallback_name=package.name, http_status=fetched.metadata_status, status=word, detail=detail), fetched_at=job.now, error=fetched.metadata_error
     )
 
 
@@ -400,20 +284,8 @@ def _put_versions(job: _Job, key: str, fetched: PackageFetch) -> Document:
     if _successful(previous) and _retryable(fetched.versions_status):
         return previous
     payload = fetched.versions_body if fetched.versions_body is not None else []
-    document = Document(
-        package=key,
-        category="versions",
-        body=json.dumps(payload),
-        fetched_at=job.now,
-        error=fetched.versions_error,
-    )
-    job.database.put(
-        key,
-        "versions",
-        body=document.body,
-        fetched_at=document.fetched_at,
-        error=document.error,
-    )
+    document = Document(package=key, category="versions", body=json.dumps(payload), fetched_at=job.now, error=fetched.versions_error)
+    job.database.put(key, "versions", body=document.body, fetched_at=document.fetched_at, error=document.error)
     return document
 
 
@@ -425,50 +297,17 @@ def _store_transport(job: _Job, package: PackageSpec, exc: Exception) -> None:
     current = job.database.get(key, "metadata")
     if not _metadata_on(job, package) or _successful(current):
         return
-    job.database.put(
-        key,
-        "metadata",
-        body=_metadata_body(
-            {},
-            fallback_name=package.name,
-            http_status=0,
-            status="Error",
-            detail=text,
-        ),
-        fetched_at=job.now,
-        error=text,
-    )
+    job.database.put(key, "metadata", body=_metadata_body({}, fallback_name=package.name, http_status=0, status="Error", detail=text), fetched_at=job.now, error=text)
 
 
 def _status(
-    job: _Job,
-    source: dict[str, object],
-    enabled: dict[str, bool],
-    *,
-    http_status: int,
-    metadata_error: str | None,
-    versions_error: str | None,
-    want_versions: bool,
-    versions: Document | None,
+    job: _Job, source: dict[str, object], enabled: dict[str, bool], *, http_status: int, metadata_error: str | None, versions_error: str | None, want_versions: bool, versions: Document | None
 ) -> tuple[str, str]:
     stale = _stale(job, source, enabled, want_versions=want_versions, versions=versions)
-    return status_text(
-        metadata_status=http_status,
-        metadata_error=metadata_error,
-        versions_error=versions_error,
-        stale=stale,
-        metadata_enabled=enabled["metadata"],
-    )
+    return status_text(metadata_status=http_status, metadata_error=metadata_error, versions_error=versions_error, stale=stale, metadata_enabled=enabled["metadata"])
 
 
-def _stale(
-    job: _Job,
-    source: dict[str, object],
-    enabled: dict[str, bool],
-    *,
-    want_versions: bool,
-    versions: Document | None,
-) -> StaleResult | None:
+def _stale(job: _Job, source: dict[str, object], enabled: dict[str, bool], *, want_versions: bool, versions: Document | None) -> StaleResult | None:
     if not enabled["stale"]:
         return None
     newest_tag_at = ""
@@ -476,22 +315,11 @@ def _stale(
         page = read_versions(_items(versions), limit=job.config.sync.version_limit)
         newest_tag_at = page.newest_tag_at
     return stale_result(
-        updated=_text(source, "updated_at"),
-        newest_tag_at=newest_tag_at,
-        now=job.now,
-        package_days=job.config.checks.stale.package_days,
-        tag_days=job.config.checks.stale.tag_days,
-        enabled=True,
+        updated=_text(source, "updated_at"), newest_tag_at=newest_tag_at, now=job.now, package_days=job.config.checks.stale.package_days, tag_days=job.config.checks.stale.tag_days, enabled=True
     )
 
 
-def assert_sync_allowed(
-    config: AppConfig,
-    database: Database,
-    *,
-    force: bool,
-    now: float,
-) -> None:
+def assert_sync_allowed(config: AppConfig, database: Database, *, force: bool, now: float) -> None:
     """Raise ``UsageError`` when the last run is still inside ``sync.interval``."""
 
     _require_interval(config, database, force=force, now=now)
@@ -536,13 +364,7 @@ def _note_cache(job: _Job) -> None:
     _notify(job.report)
 
 
-def _require_interval(
-    config: AppConfig,
-    database: Database,
-    *,
-    force: bool,
-    now: float,
-) -> None:
+def _require_interval(config: AppConfig, database: Database, *, force: bool, now: float) -> None:
     interval = config.sync.interval
     if force or interval == 0:
         return
@@ -556,10 +378,7 @@ def _require_interval(
 def _profiles(config: AppConfig, packages: Sequence[PackageSpec]) -> ConfigProfiles:
     names = {package.profile for package in packages}
     names.add(config.defaults.profile)
-    return ConfigProfiles(
-        profiles={name: ProfileSpec() for name in sorted(names)},
-        defaults=config.defaults,
-    )
+    return ConfigProfiles(profiles={name: ProfileSpec() for name in sorted(names)}, defaults=config.defaults)
 
 
 def _open_database() -> Database:
@@ -643,14 +462,7 @@ def _items(document: Document | None) -> list[object]:
     return [cast("object", item) for item in loaded]
 
 
-def _metadata_body(
-    source: dict[str, object],
-    *,
-    fallback_name: str,
-    http_status: int,
-    status: str,
-    detail: str,
-) -> str:
+def _metadata_body(source: dict[str, object], *, fallback_name: str, http_status: int, status: str, detail: str) -> str:
     name = _text(source, "name")
     payload = {
         "name": fallback_name if name == "" else name,

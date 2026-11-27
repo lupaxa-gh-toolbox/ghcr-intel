@@ -26,13 +26,7 @@ _AUDIT_FORMATS = frozenset({"json", "table"})
 _FAILED_STATUS = frozenset({"Error", "Forbidden", "Stale", "Unavailable"})
 
 
-def render_report(
-    views: Sequence[ImageView],
-    output_format: str,
-    *,
-    date_format: str,
-    fields: tuple[str, ...],
-) -> str:
+def render_report(views: Sequence[ImageView], output_format: str, *, date_format: str, fields: tuple[str, ...]) -> str:
     """
     Render list cells as a table, JSON, CSV, or Markdown.
 
@@ -53,22 +47,11 @@ def render_report(
     return _table(rows, fields)
 
 
-def audit(
-    views: Sequence[ImageView],
-    output_format: str,
-    *,
-    date_format: str,
-    fields: tuple[str, ...],
-) -> str:
+def audit(views: Sequence[ImageView], output_format: str, *, date_format: str, fields: tuple[str, ...]) -> str:
     """Render failing images. Only a table or JSON is accepted."""
 
     _require(output_format, _AUDIT_FORMATS)
-    return render_report(
-        failing(views),
-        output_format,
-        date_format=date_format,
-        fields=fields,
-    )
+    return render_report(failing(views), output_format, date_format=date_format, fields=fields)
 
 
 def failing(views: Sequence[ImageView]) -> list[ImageView]:
@@ -79,11 +62,7 @@ def failing(views: Sequence[ImageView]) -> list[ImageView]:
     architectures error is included, including when Status is Current.
     """
 
-    return [
-        view
-        for view in views
-        if view.status in _FAILED_STATUS or view.architectures_error != ""
-    ]
+    return [view for view in views if view.status in _FAILED_STATUS or view.architectures_error != ""]
 
 
 def _require(output_format: str, allowed: frozenset[str]) -> None:
@@ -93,14 +72,8 @@ def _require(output_format: str, allowed: frozenset[str]) -> None:
     raise UsageError(f"Unknown format {output_format}. Expected {choices}.")
 
 
-def _rows(
-    views: Sequence[ImageView],
-    fields: tuple[str, ...],
-) -> list[dict[str, str]]:
-    return [
-        {field: field_text(view, field, detail=False) for field in fields}
-        for view in views
-    ]
+def _rows(views: Sequence[ImageView], fields: tuple[str, ...]) -> list[dict[str, str]]:
+    return [{field: field_text(view, field, detail=False) for field in fields} for view in views]
 
 
 def _csv(rows: Sequence[dict[str, str]], fields: tuple[str, ...]) -> str:
@@ -133,15 +106,7 @@ def _table(rows: Sequence[dict[str, str]], fields: tuple[str, ...]) -> str:
     for row in rows:
         table.add_row(*(row[field] for field in fields))
     buffer = io.StringIO()
-    console = Console(
-        file=buffer,
-        markup=False,
-        highlight=False,
-        soft_wrap=True,
-        width=200,
-        force_terminal=False,
-        color_system=None,
-    )
+    console = Console(file=buffer, markup=False, highlight=False, soft_wrap=True, width=200, force_terminal=False, color_system=None)
     console.print(table)
     return buffer.getvalue()
 

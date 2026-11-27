@@ -38,7 +38,6 @@ jobs:
     name: Validate MkDocs
     uses: the-lupaxa-project/workflows/.github/workflows/reusable-mkdocs-site-validator.yml@master
     with:
-      python-version: "3.13"
       lint-markdown: true
       markdown-glob: "mkdocs/**/*.md"
       markdownlint-config: ".markdownlint.yml"

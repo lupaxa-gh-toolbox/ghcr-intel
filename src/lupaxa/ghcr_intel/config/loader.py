@@ -10,15 +10,7 @@ from ruamel.yaml import YAML
 from ruamel.yaml.constructor import DuplicateKeyError
 from ruamel.yaml.error import YAMLError
 
-from lupaxa.ghcr_intel.config.models import (
-    AppConfig,
-    OwnerSpec,
-    PackageEntry,
-    PackageFile,
-    PackageSpec,
-    ProfilesFile,
-    ProfileSpec,
-)
+from lupaxa.ghcr_intel.config.models import AppConfig, OwnerSpec, PackageEntry, PackageFile, PackageSpec, ProfilesFile, ProfileSpec
 from lupaxa.ghcr_intel.config.profiles import ConfigProfiles
 from lupaxa.ghcr_intel.constants import UNGROUPED
 from lupaxa.ghcr_intel.errors import ConfigError
@@ -66,18 +58,10 @@ def load_config(path: Path) -> LoadedConfig:
     profiles_path = _resolve_file(root, config.files.profiles)
     packages_path = _resolve_file(root, config.files.packages)
     profiles = ProfilesFile.model_validate(_read_document(profiles_path)).profiles
-    packages = _load_packages(
-        packages_path,
-        config.defaults.profile,
-    )
+    packages = _load_packages(packages_path, config.defaults.profile)
     _require_known_profiles(profiles, packages, config.defaults.profile)
     return LoadedConfig(
-        path=config_path,
-        config=config,
-        config_profiles=ConfigProfiles(profiles=profiles, defaults=config.defaults),
-        packages=packages,
-        profiles_path=profiles_path,
-        packages_path=packages_path,
+        path=config_path, config=config, config_profiles=ConfigProfiles(profiles=profiles, defaults=config.defaults), packages=packages, profiles_path=profiles_path, packages_path=packages_path
     )
 
 
@@ -128,15 +112,7 @@ def _load_packages(path: Path, default_profile: str) -> tuple[PackageSpec, ...]:
     return tuple(packages)
 
 
-def _one_owner(
-    owner: OwnerSpec,
-    index: int,
-    path: Path,
-    default_profile: str,
-    packages: list[PackageSpec],
-    seen: dict[str, str],
-    owners: set[str],
-) -> None:
+def _one_owner(owner: OwnerSpec, index: int, path: Path, default_profile: str, packages: list[PackageSpec], seen: dict[str, str], owners: set[str]) -> None:
     if owner.name.casefold() in owners:
         raise ConfigError(f"Duplicate owner {owner.name}.")
     owners.add(owner.name.casefold())
@@ -145,20 +121,12 @@ def _one_owner(
         spec = _one_package(entry, owner, default_profile, label)
         key = f"{spec.owner.casefold()}/{spec.name.casefold()}"
         if key in seen:
-            raise ConfigError(
-                f"Duplicate package {spec.owner}/{spec.name} "
-                f"(already listed as {seen[key]}).",
-            )
+            raise ConfigError(f"Duplicate package {spec.owner}/{spec.name} (already listed as {seen[key]}).")
         seen[key] = f"{spec.owner}/{spec.name}"
         packages.append(spec)
 
 
-def _one_package(
-    entry: str | PackageEntry,
-    owner: OwnerSpec,
-    default_profile: str,
-    label: str,
-) -> PackageSpec:
+def _one_package(entry: str | PackageEntry, owner: OwnerSpec, default_profile: str, label: str) -> PackageSpec:
     if isinstance(entry, str):
         name = entry
         group = owner.group
@@ -174,31 +142,14 @@ def _one_package(
         checks = dict(entry.checks)
         enabled = True if entry.enabled is None else entry.enabled
     try:
-        return PackageSpec(
-            owner=owner.name,
-            name=name,
-            group=group or UNGROUPED,
-            profile=profile or default_profile,
-            enabled=enabled,
-            tags=tags,
-            checks=checks,
-        )
+        return PackageSpec(owner=owner.name, name=name, group=group or UNGROUPED, profile=profile or default_profile, enabled=enabled, tags=tags, checks=checks)
     except ConfigError as exc:
         raise ConfigError(f"{label}: {exc}") from exc
 
 
-def _require_known_profiles(
-    profiles: dict[str, ProfileSpec],
-    packages: tuple[PackageSpec, ...],
-    default_profile: str,
-) -> None:
+def _require_known_profiles(profiles: dict[str, ProfileSpec], packages: tuple[PackageSpec, ...], default_profile: str) -> None:
     if default_profile not in profiles:
-        raise ConfigError(
-            f"defaults.profile references unknown profile {default_profile}.",
-        )
+        raise ConfigError(f"defaults.profile references unknown profile {default_profile}.")
     for package in packages:
         if package.profile not in profiles:
-            raise ConfigError(
-                f"{package.owner}/{package.name} references unknown profile "
-                f"{package.profile}.",
-            )
+            raise ConfigError(f"{package.owner}/{package.name} references unknown profile {package.profile}.")

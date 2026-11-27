@@ -23,9 +23,7 @@ def limit_delay(status: int, headers: Mapping[str, str]) -> float | None:
     folded = {str(key).lower(): str(value) for key, value in headers.items()}
     if status == 429 and "retry-after" in folded:
         return _retry_after(folded.get("retry-after"))
-    remaining = _number(
-        folded.get("x-ratelimit-remaining") or folded.get("ratelimit-remaining"),
-    )
+    remaining = _number(folded.get("x-ratelimit-remaining") or folded.get("ratelimit-remaining"))
     reset = _number(folded.get("x-ratelimit-reset") or folded.get("ratelimit-reset"))
     if remaining == 0 and reset is not None:
         return _reset_delay(reset)

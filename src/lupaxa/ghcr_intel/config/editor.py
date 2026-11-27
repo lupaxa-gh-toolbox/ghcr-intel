@@ -25,14 +25,7 @@ __all__ = [
 ]
 
 
-def add_package(
-    config_path: Path,
-    image: str,
-    *,
-    group: str | None = None,
-    profile: str | None = None,
-    tags: list[str] | None = None,
-) -> None:
+def add_package(config_path: Path, image: str, *, group: str | None = None, profile: str | None = None, tags: list[str] | None = None) -> None:
     """
     Append one image under its owner.
 
@@ -195,10 +188,7 @@ def _ensure(config_path: Path) -> LoadedConfig:
 
 def _generate(config_path: Path) -> None:
     directory = config_path.parent
-    generate_default_files(
-        (config_path, directory / "profiles.yml", directory / "packages.yml"),
-        force=False,
-    )
+    generate_default_files((config_path, directory / "profiles.yml", directory / "packages.yml"), force=False)
 
 
 def _known_profile(loaded: LoadedConfig, profile: str | None) -> None:
@@ -210,16 +200,10 @@ def _known_profile(loaded: LoadedConfig, profile: str | None) -> None:
 
 def _duplicate(packages: tuple[PackageSpec, ...], owner: str, name: str) -> bool:
     key = f"{owner.casefold()}/{name.casefold()}"
-    return any(
-        f"{item.owner.casefold()}/{item.name.casefold()}" == key for item in packages
-    )
+    return any(f"{item.owner.casefold()}/{item.name.casefold()}" == key for item in packages)
 
 
-def _edit(
-    config_path: Path,
-    packages_path: Path,
-    mutate: Callable[[list[object]], None],
-) -> None:
+def _edit(config_path: Path, packages_path: Path, mutate: Callable[[list[object]], None]) -> None:
     before = packages_path.read_bytes()
     document, owners = _load_document(packages_path)
     mutate(owners)
@@ -236,12 +220,7 @@ def _load_document(path: Path) -> tuple[CommentedMap, list[object]]:
     return loaded, owners
 
 
-def _commit(
-    config_path: Path,
-    packages_path: Path,
-    document: CommentedMap,
-    before: bytes,
-) -> None:
+def _commit(config_path: Path, packages_path: Path, document: CommentedMap, before: bytes) -> None:
     temporary = packages_path.with_name(packages_path.name + ".part")
     try:
         _dump(temporary, document)
@@ -283,15 +262,7 @@ def _restrict(path: Path) -> None:
         raise ConfigError(f"Cannot set permissions on {path}: {exc}") from exc
 
 
-def _append(
-    owners: list[object],
-    owner: str,
-    name: str,
-    *,
-    group: str | None,
-    profile: str | None,
-    tags: list[str],
-) -> None:
+def _append(owners: list[object], owner: str, name: str, *, group: str | None, profile: str | None, tags: list[str]) -> None:
     block = _owner_block(owners, owner)
     if block is None:
         block = _new_owner(owner)
@@ -330,12 +301,7 @@ def _package_list(block: dict[str, object]) -> list[object]:
     return listed
 
 
-def _entry(
-    name: str,
-    group: str | None,
-    profile: str | None,
-    tags: list[str],
-) -> str | CommentedMap:
+def _entry(name: str, group: str | None, profile: str | None, tags: list[str]) -> str | CommentedMap:
     mapping = CommentedMap()
     mapping["name"] = name
     if group is not None:
@@ -349,11 +315,7 @@ def _entry(
     return mapping
 
 
-def _require(
-    owners: list[object],
-    owner: str,
-    name: str,
-) -> tuple[dict[str, object], int]:
+def _require(owners: list[object], owner: str, name: str) -> tuple[dict[str, object], int]:
     block = _owner_block(owners, owner)
     if block is None:
         raise NotConfigured(f"{owner}/{name} is not configured.")

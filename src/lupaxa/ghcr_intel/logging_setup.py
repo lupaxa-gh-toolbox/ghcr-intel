@@ -24,13 +24,7 @@ class _RedactingFormatter(logging.Formatter):
         return text
 
 
-def configure_logging(
-    level: str,
-    *,
-    verbose: bool = False,
-    debug: bool = False,
-    secrets: list[str] | None = None,
-) -> None:
+def configure_logging(level: str, *, verbose: bool = False, debug: bool = False, secrets: list[str] | None = None) -> None:
     """
     Send diagnostics to stderr.
 

@@ -21,13 +21,7 @@ import typer
 
 from lupaxa.ghcr_intel import auth
 from lupaxa.ghcr_intel.config.defaults import generate_default_files
-from lupaxa.ghcr_intel.config.editor import (
-    add_package,
-    remove_package,
-    set_enabled,
-    set_group,
-    set_profile,
-)
+from lupaxa.ghcr_intel.config.editor import add_package, remove_package, set_enabled, set_group, set_profile
 from lupaxa.ghcr_intel.config.loader import LoadedConfig, load_config
 from lupaxa.ghcr_intel.config.models import PackageSpec
 from lupaxa.ghcr_intel.config.paths import config_file, data_directory
@@ -58,22 +52,10 @@ app = typer.Typer(
     pretty_exceptions_enable=False,
     rich_markup_mode=None,
 )
-package_app = typer.Typer(
-    help="Manage the configured image list.",
-    no_args_is_help=True,
-)
-profile_app = typer.Typer(
-    help="Inspect monitoring profiles.",
-    no_args_is_help=True,
-)
-config_app = typer.Typer(
-    help="Create, validate, and locate configuration.",
-    no_args_is_help=True,
-)
-cache_app = typer.Typer(
-    help="Inspect and clear the local cache.",
-    no_args_is_help=True,
-)
+package_app = typer.Typer(help="Manage the configured image list.", no_args_is_help=True)
+profile_app = typer.Typer(help="Inspect monitoring profiles.", no_args_is_help=True)
+config_app = typer.Typer(help="Create, validate, and locate configuration.", no_args_is_help=True)
+cache_app = typer.Typer(help="Inspect and clear the local cache.", no_args_is_help=True)
 app.add_typer(package_app, name="package")
 app.add_typer(profile_app, name="profile")
 app.add_typer(config_app, name="config")
@@ -103,24 +85,10 @@ def _interactive() -> bool:
 @app.callback(invoke_without_command=True)
 def root(
     ctx: typer.Context,
-    config: Path | None = typer.Option(
-        None,
-        "--config",
-        help="Main configuration file.",
-    ),
-    verbose: bool = typer.Option(
-        False,
-        "--verbose",
-        help="Write informational logs to stderr.",
-    ),
+    config: Path | None = typer.Option(None, "--config", help="Main configuration file."),
+    verbose: bool = typer.Option(False, "--verbose", help="Write informational logs to stderr."),
     debug: bool = typer.Option(False, "--debug", help="Write debug logs to stderr."),
-    version: bool = typer.Option(
-        False,
-        "--version",
-        callback=_version_flag,
-        is_eager=True,
-        help="Show the version and exit.",
-    ),
+    version: bool = typer.Option(False, "--version", callback=_version_flag, is_eager=True, help="Show the version and exit."),
 ) -> None:
     """Monitor an explicit list of ghcr.io container images."""
 
@@ -143,28 +111,12 @@ def root(
 def package_add(
     image: str = typer.Argument(..., metavar="OWNER/NAME"),
     group: str | None = typer.Option(None, "--group", help="Group for this image."),
-    profile: str | None = typer.Option(
-        None,
-        "--profile",
-        help="Profile for this image.",
-    ),
-    tag: list[str] | None = typer.Option(
-        None,
-        "--tag",
-        help="Local label. Repeat to add more.",
-    ),
+    profile: str | None = typer.Option(None, "--profile", help="Profile for this image."),
+    tag: list[str] | None = typer.Option(None, "--tag", help="Local label. Repeat to add more."),
 ) -> None:
     """Add an image. This does not call GitHub."""
 
-    _guard(
-        lambda: add_package(
-            config_file(),
-            image,
-            group=group,
-            profile=profile,
-            tags=list(tag or []),
-        ),
-    )
+    _guard(lambda: add_package(config_file(), image, group=group, profile=profile, tags=list(tag or [])))
     stdout_console().print(f"Added {image}.")
 
 
@@ -177,10 +129,7 @@ def package_remove(image: str = typer.Argument(..., metavar="OWNER/NAME")) -> No
 
 
 @package_app.command("set-group")
-def package_set_group(
-    image: str = typer.Argument(..., metavar="OWNER/NAME"),
-    group: str = typer.Argument(..., metavar="GROUP"),
-) -> None:
+def package_set_group(image: str = typer.Argument(..., metavar="OWNER/NAME"), group: str = typer.Argument(..., metavar="GROUP")) -> None:
     """Assign a group. Groups do not change which checks run."""
 
     _guard(lambda: set_group(config_file(), image, group))
@@ -205,11 +154,7 @@ def package_disable(image: str = typer.Argument(..., metavar="OWNER/NAME")) -> N
 
 @package_app.command("list")
 def package_list(
-    view: str | None = typer.Option(
-        None,
-        "--view",
-        help="Saved view. The file is not written.",
-    ),
+    view: str | None = typer.Option(None, "--view", help="Saved view. The file is not written."),
     group: str | None = typer.Option(None, "--group"),
     profile: str | None = typer.Option(None, "--profile"),
     output_format: str = typer.Option("table", "--format"),
@@ -224,11 +169,7 @@ def package_list(
 
 @app.command("list")
 def list_command(
-    view: str | None = typer.Option(
-        None,
-        "--view",
-        help="Saved view. The file is not written.",
-    ),
+    view: str | None = typer.Option(None, "--view", help="Saved view. The file is not written."),
     group: str | None = typer.Option(None, "--group"),
     profile: str | None = typer.Option(None, "--profile"),
     output_format: str = typer.Option("table", "--format"),
@@ -255,10 +196,7 @@ def package_show(
 
 
 @package_app.command("set-profile")
-def package_set_profile(
-    image: str = typer.Argument(..., metavar="OWNER/NAME"),
-    profile: str = typer.Argument(..., metavar="PROFILE"),
-) -> None:
+def package_set_profile(image: str = typer.Argument(..., metavar="OWNER/NAME"), profile: str = typer.Argument(..., metavar="PROFILE")) -> None:
     """Choose the checks for one image."""
 
     _guard(lambda: set_profile(config_file(), image, profile))
@@ -317,13 +255,7 @@ def profile_show(name: str = typer.Argument(..., metavar="NAME")) -> None:
 
 
 @config_app.command("init")
-def config_init(
-    force: bool = typer.Option(
-        False,
-        "--force",
-        help="Overwrite existing files with the defaults.",
-    ),
-) -> None:
+def config_init(force: bool = typer.Option(False, "--force", help="Overwrite existing files with the defaults.")) -> None:
     """Write the three default files."""
 
     _guard(lambda: _init_config(force))
@@ -342,9 +274,7 @@ def config_validate() -> None:
     """Load the files and report the package count."""
 
     loaded = _guard(lambda: load_config(config_file()))
-    stdout_console().print(
-        f"Configuration is valid ({_package_count(len(loaded.packages))}).",
-    )
+    stdout_console().print(f"Configuration is valid ({_package_count(len(loaded.packages))}).")
 
 
 @config_app.command("paths")
@@ -372,9 +302,7 @@ def cache_info() -> None:
 
 
 @cache_app.command("clear")
-def cache_clear(
-    yes: bool = typer.Option(False, "--yes", help="Skip the confirmation."),
-) -> None:
+def cache_clear(yes: bool = typer.Option(False, "--yes", help="Skip the confirmation.")) -> None:
     """Delete cached documents and sync runs. The image list stays."""
 
     _confirm("Clear all cached data?", yes=yes)
@@ -392,11 +320,7 @@ def cache_vacuum() -> None:
 
 @app.command("sync")
 def sync_command(
-    force: bool = typer.Option(
-        False,
-        "--force",
-        help="Ignore cache freshness and sync.interval.",
-    ),
+    force: bool = typer.Option(False, "--force", help="Ignore cache freshness and sync.interval."),
     group: str | None = typer.Option(None, "--group"),
     profile: str | None = typer.Option(None, "--profile"),
     concurrency: int | None = typer.Option(None, "--concurrency"),
@@ -429,14 +353,7 @@ def report_command(
     """Write a Markdown report of the selected list."""
 
     loaded, layout, views = _guard(lambda: _listed(view, group, profile))
-    text = _guard(
-        lambda: render_report(
-            views,
-            output_format,
-            date_format=loaded.config.display.date_format,
-            fields=layout.list_fields,
-        ),
-    )
+    text = _guard(lambda: render_report(views, output_format, date_format=loaded.config.display.date_format, fields=layout.list_fields))
     if output is None:
         sys.stdout.write(text)
     else:
@@ -445,22 +362,11 @@ def report_command(
 
 
 @app.command("audit")
-def audit_command(
-    output_format: str = typer.Option("table", "--format"),
-    view: str | None = typer.Option(None, "--view"),
-    fail_on_checks: bool = typer.Option(False, "--fail-on-checks"),
-) -> None:
+def audit_command(output_format: str = typer.Option("table", "--format"), view: str | None = typer.Option(None, "--view"), fail_on_checks: bool = typer.Option(False, "--fail-on-checks")) -> None:
     """Show images with a failing check."""
 
     loaded, layout, views = _guard(lambda: _listed(view))
-    text = _guard(
-        lambda: audit(
-            views,
-            output_format,
-            date_format=loaded.config.display.date_format,
-            fields=layout.list_fields,
-        ),
-    )
+    text = _guard(lambda: audit(views, output_format, date_format=loaded.config.display.date_format, fields=layout.list_fields))
     sys.stdout.write(text)
     _reject_failed(views, fail_on_checks)
 
@@ -484,12 +390,7 @@ def stdout_console() -> Console:
     interactive = bool(getattr(sys.stdout, "isatty", lambda: False)())
     if not interactive:
         return _console(sys.stdout)
-    return Console(
-        file=sys.stdout,
-        highlight=False,
-        soft_wrap=True,
-        force_terminal=True,
-    )
+    return Console(file=sys.stdout, highlight=False, soft_wrap=True, force_terminal=True)
 
 
 def stderr_console() -> Console:
@@ -499,16 +400,7 @@ def stderr_console() -> Console:
 
 
 def _console(stream: TextIO, *, stderr: bool = False) -> Console:
-    return Console(
-        file=stream,
-        markup=False,
-        highlight=False,
-        soft_wrap=True,
-        width=200,
-        force_terminal=False,
-        color_system=None,
-        stderr=stderr,
-    )
+    return Console(file=stream, markup=False, highlight=False, soft_wrap=True, width=200, force_terminal=False, color_system=None, stderr=stderr)
 
 
 def _open_cached_tui() -> None:
@@ -555,21 +447,13 @@ def _default_paths(path: Path) -> tuple[Path, Path, Path]:
     return path, directory / "profiles.yml", directory / "packages.yml"
 
 
-def _listed(
-    view: str | None,
-    group: str | None = None,
-    profile: str | None = None,
-) -> tuple[LoadedConfig, Layout, list[ImageView]]:
+def _listed(view: str | None, group: str | None = None, profile: str | None = None) -> tuple[LoadedConfig, Layout, list[ImageView]]:
     loaded = load_config(config_file())
     packages = _filtered(loaded.packages, group, profile)
     return loaded, _selected(loaded, view), _collect(loaded, packages)
 
 
-def _filtered(
-    packages: Sequence[PackageSpec],
-    group: str | None,
-    profile: str | None,
-) -> tuple[PackageSpec, ...]:
+def _filtered(packages: Sequence[PackageSpec], group: str | None, profile: str | None) -> tuple[PackageSpec, ...]:
     chosen: list[PackageSpec] = []
     for package in packages:
         if group is not None and package.group.casefold() != group.casefold():
@@ -580,11 +464,7 @@ def _filtered(
     return tuple(chosen)
 
 
-def _shown(
-    owner: str,
-    name: str,
-    view: str | None,
-) -> tuple[ImageView, tuple[str, ...] | None]:
+def _shown(owner: str, name: str, view: str | None) -> tuple[ImageView, tuple[str, ...] | None]:
     loaded = load_config(config_file())
     return _one(loaded, owner, name), _selected(loaded, view).detail_fields
 
@@ -594,10 +474,7 @@ def _selected(loaded: LoadedConfig, view: str | None) -> Layout:
     return resolve_layout(loaded.config.display, name)
 
 
-def _collect(
-    loaded: LoadedConfig,
-    packages: Sequence[PackageSpec] | None = None,
-) -> list[ImageView]:
+def _collect(loaded: LoadedConfig, packages: Sequence[PackageSpec] | None = None) -> list[ImageView]:
     database = _database()
     now = time.time()
     chosen = loaded.packages if packages is None else packages
@@ -608,20 +485,9 @@ def _synced_views() -> list[ImageView]:
     return _collect(load_config(config_file()))
 
 
-def _view(
-    loaded: LoadedConfig,
-    package: PackageSpec,
-    database: Database,
-    now: float,
-) -> ImageView:
+def _view(loaded: LoadedConfig, package: PackageSpec, database: Database, now: float) -> ImageView:
     profile = resolve_profile(loaded.config_profiles, package.profile, package.checks)
-    return build_view(
-        loaded.config,
-        package,
-        profile,
-        _documents(database, package),
-        now=now,
-    )
+    return build_view(loaded.config, package, profile, _documents(database, package), now=now)
 
 
 def _one(loaded: LoadedConfig, owner: str, name: str) -> ImageView:
@@ -636,10 +502,7 @@ def _configured(loaded: LoadedConfig, owner: str, name: str) -> PackageSpec:
 
 
 def _same(package: PackageSpec, owner: str, name: str) -> bool:
-    return (
-        package.owner.casefold() == owner.casefold()
-        and package.name.casefold() == name.casefold()
-    )
+    return package.owner.casefold() == owner.casefold() and package.name.casefold() == name.casefold()
 
 
 def _documents(database: Database, package: PackageSpec) -> list[Document]:
@@ -656,12 +519,7 @@ def _database() -> Database:
     return Database(data_directory() / "cache.sqlite")
 
 
-def _synchronise(
-    force: bool,
-    group: str | None,
-    profile: str | None,
-    concurrency: int | None,
-) -> SyncReport:
+def _synchronise(force: bool, group: str | None, profile: str | None, concurrency: int | None) -> SyncReport:
     loaded = load_config(config_file())
     token = auth.token_from_gh()
     _configure_logging(token)
@@ -670,26 +528,11 @@ def _synchronise(
 
     now = time.time()
     database = _database()
-    sync_engine.assert_sync_allowed(
-        loaded.config,
-        database,
-        force=force,
-        now=now,
-    )
+    sync_engine.assert_sync_allowed(loaded.config, database, force=force, now=now)
     packages = _filtered(loaded.packages, group, profile)
     with syncing() as on_progress:
         return asyncio.run(
-            sync_engine.synchronise(
-                loaded.config,
-                packages,
-                token=token,
-                force=force,
-                now=now,
-                database=database,
-                profiles=loaded.config_profiles,
-                on_progress=on_progress,
-                concurrency=concurrency,
-            ),
+            sync_engine.synchronise(loaded.config, packages, token=token, force=force, now=now, database=database, profiles=loaded.config_profiles, on_progress=on_progress, concurrency=concurrency)
         )
 
 
@@ -707,14 +550,7 @@ def _configure_logging(secret: str | None = None) -> None:
     configure_logging(level, verbose=_verbose, debug=_debug, secrets=secrets)
 
 
-def _emit(
-    views: Sequence[ImageView],
-    output_format: str,
-    fields: tuple[str, ...],
-    *,
-    title: str | None,
-    allowed: frozenset[str] = _VIEW_FORMATS,
-) -> None:
+def _emit(views: Sequence[ImageView], output_format: str, fields: tuple[str, ...], *, title: str | None, allowed: frozenset[str] = _VIEW_FORMATS) -> None:
     _require_format(output_format, allowed)
     if output_format == "table":
         _print_table(views, fields)
@@ -723,11 +559,7 @@ def _emit(
     _write_records(records, fields, output_format, title=title)
 
 
-def _emit_detail(
-    view: ImageView,
-    output_format: str,
-    fields: tuple[str, ...] | None,
-) -> None:
+def _emit_detail(view: ImageView, output_format: str, fields: tuple[str, ...] | None) -> None:
     pairs = _detail_pairs(view, fields)
     _require_format(output_format, _VIEW_FORMATS)
     if output_format == "table":
@@ -744,33 +576,15 @@ def _require_format(output_format: str, allowed: frozenset[str]) -> None:
     raise UsageError(f"Unknown format {output_format}. Expected {choices}.")
 
 
-def _records(
-    views: Sequence[ImageView],
-    fields: tuple[str, ...],
-) -> list[dict[str, str]]:
-    return [
-        {field: field_text(view, field, detail=False) for field in fields}
-        for view in views
-    ]
+def _records(views: Sequence[ImageView], fields: tuple[str, ...]) -> list[dict[str, str]]:
+    return [{field: field_text(view, field, detail=False) for field in fields} for view in views]
 
 
-def _write_records(
-    records: Sequence[Mapping[str, str]],
-    columns: tuple[str, ...],
-    output_format: str,
-    *,
-    title: str | None,
-) -> None:
+def _write_records(records: Sequence[Mapping[str, str]], columns: tuple[str, ...], output_format: str, *, title: str | None) -> None:
     sys.stdout.write(_format_records(records, columns, output_format, title=title))
 
 
-def _format_records(
-    records: Sequence[Mapping[str, str]],
-    columns: tuple[str, ...],
-    output_format: str,
-    *,
-    title: str | None,
-) -> str:
+def _format_records(records: Sequence[Mapping[str, str]], columns: tuple[str, ...], output_format: str, *, title: str | None) -> str:
     if output_format == "json":
         return json.dumps([dict(record) for record in records], indent=2) + "\n"
     if output_format == "csv":
@@ -787,12 +601,7 @@ def _csv(records: Sequence[Mapping[str, str]], columns: tuple[str, ...]) -> str:
     return buffer.getvalue()
 
 
-def _markdown(
-    records: Sequence[Mapping[str, str]],
-    columns: tuple[str, ...],
-    *,
-    title: str | None,
-) -> str:
+def _markdown(records: Sequence[Mapping[str, str]], columns: tuple[str, ...], *, title: str | None) -> str:
     lines: list[str] = []
     if title is not None:
         lines.extend((title, ""))
@@ -818,10 +627,7 @@ def _print_table(views: Sequence[ImageView], fields: tuple[str, ...]) -> None:
 
 
 def _print_pairs(view: ImageView, pairs: Sequence[tuple[str, str]]) -> None:
-    table = Table(
-        title=f"{view.owner}/{view.package}",
-        header_style="bold cyan",
-    )
+    table = Table(title=f"{view.owner}/{view.package}", header_style="bold cyan")
     table.add_column("Field", style="cyan")
     table.add_column("Value")
     for label, value in pairs:
@@ -829,10 +635,7 @@ def _print_pairs(view: ImageView, pairs: Sequence[tuple[str, str]]) -> None:
     stdout_console().print(table)
 
 
-def _detail_pairs(
-    view: ImageView,
-    fields: tuple[str, ...] | None,
-) -> list[tuple[str, str]]:
+def _detail_pairs(view: ImageView, fields: tuple[str, ...] | None) -> list[tuple[str, str]]:
     rows = detail_rows(view)
     if fields is None:
         return rows
@@ -841,18 +644,11 @@ def _detail_pairs(
 
 
 def _cells(view: ImageView, fields: Sequence[str]) -> list[Text]:
-    return [
-        _painted(view, field, field_text(view, field, detail=False)) for field in fields
-    ]
+    return [_painted(view, field, field_text(view, field, detail=False)) for field in fields]
 
 
 def _painted(view: ImageView, label: str, value: str) -> Text:
-    return paint(
-        label,
-        value,
-        status=view.status,
-        metadata_error=view.metadata_error,
-    )
+    return paint(label, value, status=view.status, metadata_error=view.metadata_error)
 
 
 def _justify(field: str) -> Literal["left", "right"]:

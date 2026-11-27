@@ -38,11 +38,7 @@ class ResolvedProfile:
     enabled: dict[str, bool]
 
 
-def resolve_profile(
-    profiles: ConfigProfiles,
-    name: str,
-    overrides: Mapping[str, bool] | None = None,
-) -> ResolvedProfile:
+def resolve_profile(profiles: ConfigProfiles, name: str, overrides: Mapping[str, bool] | None = None) -> ResolvedProfile:
     """
     Resolve ``name`` from defaults, then parents, then repository overrides.
 
@@ -107,10 +103,7 @@ def _override(check: str, value: object, enabled: dict[str, bool]) -> None:
     enabled[check] = value
 
 
-def _inheritance_chain(
-    profiles: dict[str, ProfileSpec],
-    name: str,
-) -> tuple[str, ...]:
+def _inheritance_chain(profiles: dict[str, ProfileSpec], name: str) -> tuple[str, ...]:
     chain: list[str] = []
     seen: set[str] = set()
     current: str | None = name

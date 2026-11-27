@@ -22,7 +22,7 @@ _ACCEPT = ", ".join(
         "application/vnd.docker.distribution.manifest.list.v2+json",
         "application/vnd.oci.image.manifest.v1+json",
         "application/vnd.docker.distribution.manifest.v2+json",
-    ),
+    )
 )
 _FORBIDDEN = "Forbidden"
 _UNAVAILABLE = "Unavailable"
@@ -39,15 +39,7 @@ class ManifestFetch:
     retry_after: float | None = None
 
 
-async def fetch_manifest(
-    client: httpx.AsyncClient,
-    *,
-    registry_url: str,
-    owner: str,
-    name: str,
-    tag: str,
-    github_token: str,
-) -> ManifestFetch:
+async def fetch_manifest(client: httpx.AsyncClient, *, registry_url: str, owner: str, name: str, tag: str, github_token: str) -> ManifestFetch:
     """
     Read one manifest. Exchange a bearer challenge once.
 
@@ -68,27 +60,13 @@ async def fetch_manifest(
     return await _after_challenge(client, url, response, owner, name, github_token)
 
 
-async def _after_challenge(
-    client: httpx.AsyncClient,
-    url: str,
-    response: httpx.Response,
-    owner: str,
-    name: str,
-    github_token: str,
-) -> ManifestFetch:
+async def _after_challenge(client: httpx.AsyncClient, url: str, response: httpx.Response, owner: str, name: str, github_token: str) -> ManifestFetch:
     challenge = _challenge(response.headers.get("www-authenticate"))
     if challenge is None:
         return _failed(_FORBIDDEN)
     realm, service = challenge
     try:
-        registry_token = await _registry_token(
-            client,
-            realm,
-            service,
-            owner,
-            name,
-            github_token,
-        )
+        registry_token = await _registry_token(client, realm, service, owner, name, github_token)
     except httpx.RequestError:
         return _failed(_UNKNOWN)
     if registry_token is None:
@@ -100,11 +78,7 @@ async def _after_challenge(
     return _from_response(retried)
 
 
-async def _manifest(
-    client: httpx.AsyncClient,
-    url: str,
-    token: str,
-) -> httpx.Response:
+async def _manifest(client: httpx.AsyncClient, url: str, token: str) -> httpx.Response:
     return await client.get(
         url,
         headers={
@@ -120,22 +94,11 @@ def _manifest_url(registry_url: str, owner: str, name: str, tag: str) -> str:
     return f"{root}/v2/{repository}/manifests/{tag}"
 
 
-async def _registry_token(
-    client: httpx.AsyncClient,
-    realm: str,
-    service: str | None,
-    owner: str,
-    name: str,
-    github_token: str,
-) -> str | None:
+async def _registry_token(client: httpx.AsyncClient, realm: str, service: str | None, owner: str, name: str, github_token: str) -> str | None:
     params = {"scope": f"repository:{registry_name(owner, name)}:pull"}
     if service is not None:
         params["service"] = service
-    response = await client.get(
-        realm,
-        params=params,
-        headers={"Authorization": f"Bearer {github_token}"},
-    )
+    response = await client.get(realm, params=params, headers={"Authorization": f"Bearer {github_token}"})
     if response.status_code != 200:
         return None
     return _issued(_object(_payload(response)))
@@ -157,10 +120,7 @@ def _challenge(header: str | None) -> tuple[str, str | None] | None:
     scheme, _, _rest = header.partition(" ")
     if scheme.lower() != "bearer":
         return None
-    fields = {
-        match.group(1).lower(): match.group(2)
-        for match in _CHALLENGE_PARAM.finditer(header)
-    }
+    fields = {match.group(1).lower(): match.group(2) for match in _CHALLENGE_PARAM.finditer(header)}
     realm = fields.get("realm", "")
     if realm == "":
         return None

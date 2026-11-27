@@ -8,14 +8,7 @@ import sys
 from typing import IO
 
 from rich.console import Console
-from rich.progress import (
-    BarColumn,
-    MofNCompleteColumn,
-    Progress,
-    SpinnerColumn,
-    TextColumn,
-    TimeElapsedColumn,
-)
+from rich.progress import BarColumn, MofNCompleteColumn, Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 
 from lupaxa.ghcr_intel.sync.engine import SyncReport
 
@@ -50,26 +43,13 @@ def syncing() -> Iterator[Callable[[SyncReport], None]]:
         yield emit
         return
 
-    progress = Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
-        MofNCompleteColumn(),
-        TimeElapsedColumn(),
-        console=console,
-        transient=True,
-    )
+    progress = Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}"), BarColumn(), MofNCompleteColumn(), TimeElapsedColumn(), console=console, transient=True)
     with progress:
         task = progress.add_task("Synchronising", total=None)
 
         def update(report: SyncReport) -> None:
             done = report.successful + report.failed
-            progress.update(
-                task,
-                completed=done,
-                total=report.images or None,
-                description=status_line(report),
-            )
+            progress.update(task, completed=done, total=report.images or None, description=status_line(report))
 
         yield update
 
@@ -77,11 +57,7 @@ def syncing() -> Iterator[Callable[[SyncReport], None]]:
 def print_sync(report: SyncReport, stream: IO[str] | None = None) -> None:
     """Print the completed run in the same shape as the other Intel tools."""
 
-    title = (
-        "Synchronisation did not finish"
-        if report.incomplete
-        else "Synchronisation completed"
-    )
+    title = "Synchronisation did not finish" if report.incomplete else "Synchronisation completed"
     lines = [
         title,
         "",
@@ -106,17 +82,9 @@ def status_line(report: SyncReport) -> str:
 
     done = report.successful + report.failed
     name = report.latest or "Synchronising"
-    line = (
-        f"{name}  {done}/{report.images}"
-        f"  requests {report.requests}"
-        f"  cache {report.cache_hits}"
-        f"  failed {report.failed}"
-    )
+    line = f"{name}  {done}/{report.images}  requests {report.requests}  cache {report.cache_hits}  failed {report.failed}"
     if report.rate_wait > 0:
-        return (
-            f"{line}  waiting for GitHub rate limit, "
-            f"requests resume in {_wait_label(report.rate_wait)}"
-        )
+        return f"{line}  waiting for GitHub rate limit, requests resume in {_wait_label(report.rate_wait)}"
     if report.rate_pauses:
         return f"{line}  rate limit pauses {report.rate_pauses}"
     return line

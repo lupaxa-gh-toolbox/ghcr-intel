@@ -57,10 +57,7 @@ def config_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
 def test_package_add_writes_packages_without_http(config_home: Path) -> None:
     assert len(respx.routes) == 0
-    result = runner.invoke(
-        app,
-        ["package", "add", "octocat/hello-world", "--group", "examples"],
-    )
+    result = runner.invoke(app, ["package", "add", "octocat/hello-world", "--group", "examples"])
     text = (config_home / "packages.yml").read_text(encoding="utf-8")
     assert result.exit_code == 0
     assert "octocat" in text
@@ -103,14 +100,8 @@ def test_package_add_flags_stay_on_one_image(config_home: Path) -> None:
         ],
     )
     other = runner.invoke(app, ["package", "add", "octocat/other"])
-    first = runner.invoke(
-        app,
-        ["package", "show", "octocat", "hello-world", "--format", "json"],
-    )
-    second = runner.invoke(
-        app,
-        ["package", "show", "octocat", "other", "--format", "json"],
-    )
+    first = runner.invoke(app, ["package", "show", "octocat", "hello-world", "--format", "json"])
+    second = runner.invoke(app, ["package", "show", "octocat", "other", "--format", "json"])
     assert added.exit_code == 0
     assert other.exit_code == 0
     assert first.exit_code == 0, first.output
@@ -131,10 +122,7 @@ def test_version_prints_the_package_version() -> None:
     assert result.stdout.strip() == f"ghcr-intel v{__version__}"
 
 
-def test_config_option_selects_the_file(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_config_option_selects_the_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("GHCR_INTEL_CONFIG", raising=False)
     target = tmp_path / "picked" / "config.yml"
     result = runner.invoke(app, ["--config", str(target), "config", "init"])
@@ -144,20 +132,8 @@ def test_config_option_selects_the_file(
 
 
 def test_list_filters_group_without_case(config_home: Path) -> None:
-    assert (
-        runner.invoke(
-            app,
-            ["package", "add", "octocat/hello-world", "--group", "Examples"],
-        ).exit_code
-        == 0
-    )
-    assert (
-        runner.invoke(
-            app,
-            ["package", "add", "octocat/other", "--group", "elsewhere"],
-        ).exit_code
-        == 0
-    )
+    assert runner.invoke(app, ["package", "add", "octocat/hello-world", "--group", "Examples"]).exit_code == 0
+    assert runner.invoke(app, ["package", "add", "octocat/other", "--group", "elsewhere"]).exit_code == 0
     matched = runner.invoke(app, ["list", "--group", "examples"])
     missed = runner.invoke(app, ["list", "--group", "missing"])
     assert matched.exit_code == 0
@@ -171,10 +147,7 @@ def test_disable_keeps_the_image_and_marks_it_off(config_home: Path) -> None:
     assert runner.invoke(app, ["package", "add", "octocat/hello-world"]).exit_code == 0
     disabled = runner.invoke(app, ["package", "disable", "octocat/hello-world"])
     text = (config_home / "packages.yml").read_text(encoding="utf-8")
-    shown = runner.invoke(
-        app,
-        ["package", "show", "octocat", "hello-world", "--format", "json"],
-    )
+    shown = runner.invoke(app, ["package", "show", "octocat", "hello-world", "--format", "json"])
     assert disabled.exit_code == 0
     assert "enabled: false" in text
     assert json.loads(shown.stdout)[0]["Enabled"] == "no"
@@ -184,10 +157,7 @@ def test_disable_keeps_the_image_and_marks_it_off(config_home: Path) -> None:
     assert "enabled: true" in again
 
 
-def test_sync_passes_concurrency_and_rejects_zero(
-    config_home: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_sync_passes_concurrency_and_rejects_zero(config_home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     from lupaxa.ghcr_intel.sync.engine import SyncReport, synchronise
 
     assert runner.invoke(app, ["config", "init"]).exit_code == 0
@@ -262,18 +232,9 @@ def test_package_add_stores_repeated_tags(config_home: Path) -> None:
     assert "sample" in text
 
 
-def test_package_list_reads_the_cache_and_does_not_fetch(
-    config_home: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_package_list_reads_the_cache_and_does_not_fetch(config_home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     assert runner.invoke(app, ["config", "init"]).exit_code == 0
-    assert (
-        runner.invoke(
-            app,
-            ["package", "add", "octocat/hello-world", "--group", "examples"],
-        ).exit_code
-        == 0
-    )
+    assert runner.invoke(app, ["package", "add", "octocat/hello-world", "--group", "examples"]).exit_code == 0
     _seed_public(config_home / "data")
     called = {"fetch": 0}
 
@@ -319,10 +280,7 @@ def test_config_show_prints_the_settings(config_home: Path) -> None:
 
 def test_package_remove_and_set_group(config_home: Path) -> None:
     assert runner.invoke(app, ["package", "add", "octocat/hello-world"]).exit_code == 0
-    grouped = runner.invoke(
-        app,
-        ["package", "set-group", "octocat/hello-world", "examples"],
-    )
+    grouped = runner.invoke(app, ["package", "set-group", "octocat/hello-world", "examples"])
     assert grouped.exit_code == 0
     assert "examples" in (config_home / "packages.yml").read_text(encoding="utf-8")
     removed = runner.invoke(app, ["package", "remove", "octocat/hello-world"])
@@ -360,31 +318,17 @@ def test_package_show_missing_exits_5(config_home: Path) -> None:
 
 def test_set_profile_writes_the_package_object(config_home: Path) -> None:
     assert runner.invoke(app, ["package", "add", "octocat/hello-world"]).exit_code == 0
-    result = runner.invoke(
-        app,
-        ["package", "set-profile", "octocat/hello-world", "detailed"],
-    )
+    result = runner.invoke(app, ["package", "set-profile", "octocat/hello-world", "detailed"])
     text = (config_home / "packages.yml").read_text(encoding="utf-8")
-    missing = runner.invoke(
-        app,
-        ["package", "set-profile", "octocat/missing", "standard"],
-    )
+    missing = runner.invoke(app, ["package", "set-profile", "octocat/missing", "standard"])
     assert result.exit_code == 0
     assert "detailed" in text
     assert missing.exit_code == 5
 
 
-def test_config_init_twice_exits_2_and_force_restores_empty_owners(
-    config_home: Path,
-) -> None:
+def test_config_init_twice_exits_2_and_force_restores_empty_owners(config_home: Path) -> None:
     assert runner.invoke(app, ["config", "init"]).exit_code == 0
-    assert (
-        runner.invoke(
-            app,
-            ["package", "add", "octocat/hello-world", "--group", "examples"],
-        ).exit_code
-        == 0
-    )
+    assert runner.invoke(app, ["package", "add", "octocat/hello-world", "--group", "examples"]).exit_code == 0
     second = runner.invoke(app, ["config", "init"])
     forced = runner.invoke(app, ["config", "init", "--force"])
     text = (config_home / "packages.yml").read_text(encoding="utf-8")
@@ -399,10 +343,7 @@ def test_unknown_view_on_package_list_exits_2(config_home: Path) -> None:
     assert result.exit_code == 2
 
 
-def test_sync_auth_error_exits_3_before_fetch(
-    config_home: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_sync_auth_error_exits_3_before_fetch(config_home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     assert runner.invoke(app, ["config", "init"]).exit_code == 0
     assert runner.invoke(app, ["package", "add", "octocat/hello-world"]).exit_code == 0
     called = {"fetch": 0, "sync": 0}
@@ -432,13 +373,7 @@ def test_sync_auth_error_exits_3_before_fetch(
 
 def test_fail_on_checks_exits_6_when_the_view_is_stale(config_home: Path) -> None:
     assert runner.invoke(app, ["config", "init"]).exit_code == 0
-    assert (
-        runner.invoke(
-            app,
-            ["package", "add", "octocat/hello-world", "--profile", "detailed"],
-        ).exit_code
-        == 0
-    )
+    assert runner.invoke(app, ["package", "add", "octocat/hello-world", "--profile", "detailed"]).exit_code == 0
     _seed_stale(config_home / "data")
     listed = runner.invoke(app, ["package", "list", "--fail-on-checks"])
     audited = runner.invoke(app, ["audit", "--fail-on-checks"])
@@ -446,10 +381,7 @@ def test_fail_on_checks_exits_6_when_the_view_is_stale(config_home: Path) -> Non
     assert audited.exit_code == 6
 
 
-def test_sync_incomplete_exits_4_and_force_is_passed(
-    config_home: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_sync_incomplete_exits_4_and_force_is_passed(config_home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     from lupaxa.ghcr_intel.sync.engine import SyncReport
 
     assert runner.invoke(app, ["config", "init"]).exit_code == 0
@@ -472,15 +404,7 @@ def test_sync_incomplete_exits_4_and_force_is_passed(
         on_progress: object = None,
         concurrency: int | None = None,
     ) -> SyncReport:
-        del (
-            now,
-            database,
-            profiles,
-            fetch_package,
-            fetch_manifest,
-            on_progress,
-            concurrency,
-        )
+        del (now, database, profiles, fetch_package, fetch_manifest, on_progress, concurrency)
         seen["token"] = token
         seen["force"] = force
         return SyncReport(incomplete=True)
@@ -502,10 +426,7 @@ def test_sync_incomplete_exits_4_and_force_is_passed(
     assert seen["force"] is False
 
 
-def test_sync_prints_progress_and_the_summary(
-    config_home: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_sync_prints_progress_and_the_summary(config_home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     from rich.console import Console
 
     from lupaxa.ghcr_intel.sync.engine import SyncReport
@@ -516,19 +437,8 @@ def test_sync_prints_progress_and_the_summary(
     def token() -> str:
         return "test-token"
 
-    async def synchronise(
-        *_args: object,
-        on_progress: object = None,
-        **_kwargs: object,
-    ) -> SyncReport:
-        report = SyncReport(
-            images=1,
-            successful=1,
-            requests=2,
-            cache_hits=1,
-            latest="octocat/one",
-            elapsed=1.25,
-        )
+    async def synchronise(*_args: object, on_progress: object = None, **_kwargs: object) -> SyncReport:
+        report = SyncReport(images=1, successful=1, requests=2, cache_hits=1, latest="octocat/one", elapsed=1.25)
         assert callable(on_progress)
         on_progress(report)
         return report
@@ -574,10 +484,7 @@ def test_without_a_tty_prints_help_and_does_not_import_tui() -> None:
     assert "lupaxa.ghcr_intel.tui.application" not in sys.modules
 
 
-def test_tty_without_arguments_calls_run_tui(
-    config_home: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_tty_without_arguments_calls_run_tui(config_home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     import types
 
     assert runner.invoke(app, ["config", "init"]).exit_code == 0
@@ -593,11 +500,7 @@ def test_tty_without_arguments_calls_run_tui(
     application.run_tui = run_tui  # type: ignore[attr-defined]
     tui_module.application = application  # type: ignore[attr-defined]
     monkeypatch.setitem(sys.modules, "lupaxa.ghcr_intel.tui", tui_module)
-    monkeypatch.setitem(
-        sys.modules,
-        "lupaxa.ghcr_intel.tui.application",
-        application,
-    )
+    monkeypatch.setitem(sys.modules, "lupaxa.ghcr_intel.tui.application", application)
     monkeypatch.setattr("lupaxa.ghcr_intel.cli._interactive", lambda: True)
     result = runner.invoke(app, [])
     assert result.exit_code == 0
@@ -608,20 +511,8 @@ def test_tty_without_arguments_calls_run_tui(
 
 def test_audit_json_includes_only_failing_images(config_home: Path) -> None:
     assert runner.invoke(app, ["config", "init"]).exit_code == 0
-    assert (
-        runner.invoke(
-            app,
-            ["package", "add", "octocat/hello-world", "--profile", "detailed"],
-        ).exit_code
-        == 0
-    )
-    assert (
-        runner.invoke(
-            app,
-            ["package", "add", "octocat/fresh", "--profile", "standard"],
-        ).exit_code
-        == 0
-    )
+    assert runner.invoke(app, ["package", "add", "octocat/hello-world", "--profile", "detailed"]).exit_code == 0
+    assert runner.invoke(app, ["package", "add", "octocat/fresh", "--profile", "standard"]).exit_code == 0
     _seed_stale(config_home / "data")
     _seed_current(config_home / "data", "octocat/fresh")
     result = runner.invoke(app, ["audit", "--format", "json"])
@@ -658,7 +549,7 @@ def _seed_public(data: Path) -> None:
                 "updated_at": "2024-06-01T00:00:00Z",
                 "repository": "https://github.com/octocat/hello-world",
                 "http_status": 200,
-            },
+            }
         ),
         fetched_at=1_700_000_000.0,
         error=None,
@@ -677,7 +568,7 @@ def _seed_stale(data: Path) -> None:
                 "updated_at": "2020-01-01T00:00:00Z",
                 "created_at": "2020-01-01T00:00:00Z",
                 "http_status": 200,
-            },
+            }
         ),
         fetched_at=1_700_000_000.0,
         error=None,
@@ -696,7 +587,7 @@ def _seed_current(data: Path, package: str) -> None:
                 "updated_at": "2026-11-18T00:00:00Z",
                 "created_at": "2026-11-18T00:00:00Z",
                 "http_status": 200,
-            },
+            }
         ),
         fetched_at=1_763_596_800.0,
         error=None,

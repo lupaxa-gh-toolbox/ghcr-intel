@@ -72,25 +72,10 @@ def read_versions(body: list[object], *, limit: int) -> VersionPage:
     else:
         digest, newest_tag_at, chosen_tags = chosen
         newest_tag = "latest" if "latest" in chosen_tags else chosen_tags[-1]
-    return VersionPage(
-        tags=tuple(sorted(names)),
-        digest=digest,
-        newest_tag=newest_tag,
-        fetched=len(kept),
-        truncated=len(body) >= limit,
-        newest_tag_at=newest_tag_at,
-    )
+    return VersionPage(tags=tuple(sorted(names)), digest=digest, newest_tag=newest_tag, fetched=len(kept), truncated=len(body) >= limit, newest_tag_at=newest_tag_at)
 
 
-def stale_result(
-    *,
-    updated: str,
-    newest_tag_at: str,
-    now: float,
-    package_days: int,
-    tag_days: int,
-    enabled: bool,
-) -> StaleResult:
+def stale_result(*, updated: str, newest_tag_at: str, now: float, package_days: int, tag_days: int, enabled: bool) -> StaleResult:
     """
     Age the package and the newest tag.
 
@@ -103,21 +88,10 @@ def stale_result(
     tag_days_old = _age_days(newest_tag_at, now)
     package_failed = package_days_old is not None and package_days_old >= package_days
     tag_failed = tag_days_old is not None and tag_days_old >= tag_days
-    return StaleResult(
-        failed=enabled and (package_failed or tag_failed),
-        package_days_old=package_days_old,
-        tag_days_old=tag_days_old,
-    )
+    return StaleResult(failed=enabled and (package_failed or tag_failed), package_days_old=package_days_old, tag_days_old=tag_days_old)
 
 
-def status_text(
-    *,
-    metadata_status: int,
-    metadata_error: str | None,
-    versions_error: str | None,
-    stale: StaleResult | None,
-    metadata_enabled: bool,
-) -> tuple[str, str]:
+def status_text(*, metadata_status: int, metadata_error: str | None, versions_error: str | None, stale: StaleResult | None, metadata_enabled: bool) -> tuple[str, str]:
     """
     Return the short status word and one detail sentence.
 
@@ -127,11 +101,7 @@ def status_text(
 
     """
 
-    failure = _http_failure(
-        metadata_status,
-        metadata_error,
-        metadata_enabled=metadata_enabled,
-    )
+    failure = _http_failure(metadata_status, metadata_error, metadata_enabled=metadata_enabled)
     if failure is not None:
         return failure
     if versions_error:
@@ -147,11 +117,7 @@ def _version_fields(item: object) -> tuple[str, str, list[str]]:
     mapping = _mapping(item)
     if mapping is None:
         return "", "", []
-    return (
-        _text(mapping, "name"),
-        _text(mapping, "created_at"),
-        _tags(mapping),
-    )
+    return (_text(mapping, "name"), _text(mapping, "created_at"), _tags(mapping))
 
 
 def _mapping(value: object) -> dict[str, object] | None:
@@ -204,12 +170,7 @@ def _instant(value: str) -> datetime | None:
     return moment.astimezone(UTC)
 
 
-def _http_failure(
-    status: int,
-    metadata_error: str | None,
-    *,
-    metadata_enabled: bool,
-) -> tuple[str, str] | None:
+def _http_failure(status: int, metadata_error: str | None, *, metadata_enabled: bool) -> tuple[str, str] | None:
     if status == 200 or (status == 0 and not metadata_enabled):
         return None
     if status in {401, 403}:
@@ -225,10 +186,7 @@ def _stale_sentence(stale: StaleResult) -> str:
     package = stale.package_days_old
     tag = stale.tag_days_old
     if package is not None and tag is not None:
-        return (
-            f"The package was last updated {_days(package)} ago "
-            f"and the newest tag is {_days(tag)} old."
-        )
+        return f"The package was last updated {_days(package)} ago and the newest tag is {_days(tag)} old."
     if package is not None:
         return f"The package was last updated {_days(package)} ago."
     if tag is not None:

@@ -89,11 +89,7 @@ profiles:
 _PACKAGES = "owners: []\n"
 
 
-def generate_default_files(
-    paths: tuple[Path, Path, Path],
-    *,
-    force: bool,
-) -> tuple[tuple[Path, ...], tuple[Path, ...]]:
+def generate_default_files(paths: tuple[Path, Path, Path], *, force: bool) -> tuple[tuple[Path, ...], tuple[Path, ...]]:
     """
     Write the shipped config, profiles, and packages files.
 

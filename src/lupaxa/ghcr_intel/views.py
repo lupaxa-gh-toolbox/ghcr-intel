@@ -13,12 +13,7 @@ from lupaxa.ghcr_intel.config.profiles import ResolvedProfile
 from lupaxa.ghcr_intel.dates import format_date
 from lupaxa.ghcr_intel.layout import CATALOGUE
 from lupaxa.ghcr_intel.storage.database import Document
-from lupaxa.ghcr_intel.sync.readings import (
-    StaleResult,
-    read_versions,
-    stale_result,
-    status_text,
-)
+from lupaxa.ghcr_intel.sync.readings import StaleResult, read_versions, stale_result, status_text
 
 __all__ = [
     "ImageView",
@@ -39,7 +34,7 @@ _METADATA_FIELDS = frozenset(
         "Linked repository",
         "Created",
         "Updated",
-    },
+    }
 )
 _TAG_FIELDS = frozenset({"Newest tag", "Image tags", "Tag count"})
 _VERSION_FIELDS = frozenset({"Versions fetched", "Versions truncated"})
@@ -84,14 +79,7 @@ class ImageView:
     versions_on: bool
 
 
-def build_view(
-    config: AppConfig,
-    package: PackageSpec,
-    profile: ResolvedProfile,
-    documents: Sequence[Document],
-    *,
-    now: float,
-) -> ImageView:
+def build_view(config: AppConfig, package: PackageSpec, profile: ResolvedProfile, documents: Sequence[Document], *, now: float) -> ImageView:
     """
     Build one image row from configuration and stored documents.
 
@@ -106,28 +94,10 @@ def build_view(
     versions_on = _versions_on(enabled)
     stored_versions = versions if versions_on else None
     body = _object("" if metadata is None else metadata.body)
-    page = read_versions(
-        _items(stored_versions),
-        limit=config.sync.version_limit,
-    )
-    stale = _age(
-        config,
-        body,
-        enabled=enabled,
-        newest_tag_at=page.newest_tag_at,
-        now=now,
-    )
-    status, detail = _status(
-        metadata,
-        stored_versions,
-        body,
-        enabled=enabled,
-        stale=stale,
-    )
-    architectures, architectures_error = _shown_architectures(
-        _document(documents, "manifest"),
-        enabled=enabled,
-    )
+    page = read_versions(_items(stored_versions), limit=config.sync.version_limit)
+    stale = _age(config, body, enabled=enabled, newest_tag_at=page.newest_tag_at, now=now)
+    status, detail = _status(metadata, stored_versions, body, enabled=enabled, stale=stale)
+    architectures, architectures_error = _shown_architectures(_document(documents, "manifest"), enabled=enabled)
     fetched_at = None if metadata is None else metadata.fetched_at
     metadata_error = _shown_metadata_error(metadata, enabled=enabled)
     return ImageView(
@@ -142,13 +112,7 @@ def build_view(
         linked_repository=_text(body, "repository"),
         status=status,
         status_detail=detail,
-        cache=_cache_text(
-            fetched_at,
-            now=now,
-            ttl=float(config.sync.cache.metadata_ttl),
-            http_status=_http_status(body) if metadata is not None else 0,
-            error=metadata_error,
-        ),
+        cache=_cache_text(fetched_at, now=now, ttl=float(config.sync.cache.metadata_ttl), http_status=_http_status(body) if metadata is not None else 0, error=metadata_error),
         created=_text(body, "created_at"),
         updated=_text(body, "updated_at"),
         synchronised=_instant(fetched_at),
@@ -244,35 +208,13 @@ def _fixed(view: ImageView, label: str) -> str | None:
 
 def _checked(view: ImageView, label: str, *, detail: bool) -> str | None:
     if label in _METADATA_FIELDS:
-        return _gated(
-            view.metadata_on,
-            "metadata",
-            _metadata_value(view, label),
-            detail=detail,
-        )
+        return _gated(view.metadata_on, "metadata", _metadata_value(view, label), detail=detail)
     if label in _TAG_FIELDS:
-        return _failed_or_value(
-            view,
-            "tags",
-            view.tags_on,
-            _tag_value(view, label),
-            detail=detail,
-        )
+        return _failed_or_value(view, "tags", view.tags_on, _tag_value(view, label), detail=detail)
     if label == "Digest":
-        return _failed_or_value(
-            view,
-            "digests",
-            view.digests_on,
-            view.digest,
-            detail=detail,
-        )
+        return _failed_or_value(view, "digests", view.digests_on, view.digest, detail=detail)
     if label == "Architectures":
-        return _gated(
-            view.architectures_on,
-            "architectures",
-            view.architectures,
-            detail=detail,
-        )
+        return _gated(view.architectures_on, "architectures", view.architectures, detail=detail)
     if label == "Stale":
         return _gated(view.stale_on, "stale", view.stale_word, detail=detail)
     if label in _VERSION_FIELDS:
@@ -300,14 +242,7 @@ def _tag_value(view: ImageView, label: str) -> str:
     return str(view.tag_count)
 
 
-def _failed_or_value(
-    view: ImageView,
-    check: str,
-    enabled: bool,
-    value: str,
-    *,
-    detail: bool,
-) -> str:
+def _failed_or_value(view: ImageView, check: str, enabled: bool, value: str, *, detail: bool) -> str:
     if not enabled:
         return _skipped(check, detail=detail)
     if view.versions_error != "":
@@ -335,14 +270,7 @@ def _skipped(check: str, *, detail: bool) -> str:
     return f"SKIPPED — {check} is disabled."
 
 
-def _status(
-    metadata: Document | None,
-    versions: Document | None,
-    body: dict[str, object],
-    *,
-    enabled: Mapping[str, bool],
-    stale: StaleResult | None,
-) -> tuple[str, str]:
+def _status(metadata: Document | None, versions: Document | None, body: dict[str, object], *, enabled: Mapping[str, bool], stale: StaleResult | None) -> tuple[str, str]:
     if metadata is None and (enabled["metadata"] or versions is None):
         return _NOT_SYNCHRONISED, _NOT_SYNCHRONISED_DETAIL
     return status_text(
@@ -354,31 +282,13 @@ def _status(
     )
 
 
-def _age(
-    config: AppConfig,
-    body: dict[str, object],
-    *,
-    enabled: Mapping[str, bool],
-    newest_tag_at: str,
-    now: float,
-) -> StaleResult | None:
+def _age(config: AppConfig, body: dict[str, object], *, enabled: Mapping[str, bool], newest_tag_at: str, now: float) -> StaleResult | None:
     if not enabled["stale"]:
         return None
-    return stale_result(
-        updated=_text(body, "updated_at"),
-        newest_tag_at=newest_tag_at,
-        now=now,
-        package_days=config.checks.stale.package_days,
-        tag_days=config.checks.stale.tag_days,
-        enabled=True,
-    )
+    return stale_result(updated=_text(body, "updated_at"), newest_tag_at=newest_tag_at, now=now, package_days=config.checks.stale.package_days, tag_days=config.checks.stale.tag_days, enabled=True)
 
 
-def _shown_architectures(
-    document: Document | None,
-    *,
-    enabled: Mapping[str, bool],
-) -> tuple[str, str]:
+def _shown_architectures(document: Document | None, *, enabled: Mapping[str, bool]) -> tuple[str, str]:
     if not enabled["architectures"]:
         return "", ""
     return _architectures(document)
@@ -397,14 +307,7 @@ def _architectures(document: Document | None) -> tuple[str, str]:
     return ", ".join(names), ""
 
 
-def _cache_text(
-    fetched_at: float | None,
-    *,
-    now: float,
-    ttl: float,
-    http_status: int,
-    error: str,
-) -> str:
+def _cache_text(fetched_at: float | None, *, now: float, ttl: float, http_status: int, error: str) -> str:
     word = cache_word(fetched_at, now, ttl)
     if error == "":
         return word
@@ -412,12 +315,7 @@ def _cache_text(
     return f"{word}, {token}"
 
 
-def _metadata_status(
-    metadata: Document | None,
-    body: dict[str, object],
-    *,
-    enabled: Mapping[str, bool],
-) -> int:
+def _metadata_status(metadata: Document | None, body: dict[str, object], *, enabled: Mapping[str, bool]) -> int:
     if metadata is None:
         return 0
     status = _http_status(body)
@@ -426,21 +324,13 @@ def _metadata_status(
     return status
 
 
-def _metadata_failure(
-    metadata: Document | None,
-    *,
-    enabled: Mapping[str, bool],
-) -> str | None:
+def _metadata_failure(metadata: Document | None, *, enabled: Mapping[str, bool]) -> str | None:
     if metadata is None or not enabled["metadata"]:
         return None
     return _blank_as_none(_stored_error(metadata))
 
 
-def _shown_metadata_error(
-    metadata: Document | None,
-    *,
-    enabled: Mapping[str, bool],
-) -> str:
+def _shown_metadata_error(metadata: Document | None, *, enabled: Mapping[str, bool]) -> str:
     failure = _metadata_failure(metadata, enabled=enabled)
     if failure is None:
         return ""

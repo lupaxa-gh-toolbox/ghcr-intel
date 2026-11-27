@@ -20,18 +20,12 @@ def test_a_429_without_a_wait_does_not_pause() -> None:
 
 
 def test_remaining_zero_uses_a_reset_delta() -> None:
-    delay = limit_delay(
-        200,
-        {"X-RateLimit-Remaining": "0", "X-RateLimit-Reset": "3"},
-    )
+    delay = limit_delay(200, {"X-RateLimit-Remaining": "0", "X-RateLimit-Reset": "3"})
     assert delay == 3.0
 
 
 def test_remaining_zero_uses_an_epoch_reset() -> None:
     reset = time.time() + 30
-    delay = limit_delay(
-        200,
-        {"X-RateLimit-Remaining": "0", "X-RateLimit-Reset": str(reset)},
-    )
+    delay = limit_delay(200, {"X-RateLimit-Remaining": "0", "X-RateLimit-Reset": str(reset)})
     assert delay is not None
     assert 25 <= delay <= 31

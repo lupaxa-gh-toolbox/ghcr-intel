@@ -178,10 +178,7 @@ class IntelTui(App[None]):
     def action_views(self) -> None:
         """Open the saved view picker."""
 
-        self.push_screen(
-            ViewPicker(_view_names(self.service.config.display)),
-            self._choose_view,
-        )
+        self.push_screen(ViewPicker(_view_names(self.service.config.display)), self._choose_view)
 
     def on_input_changed(self, event: Input.Changed) -> None:
         """Filter the image table as the search box changes."""
@@ -228,11 +225,7 @@ class IntelTui(App[None]):
         try:
             for name in self.service.config_profiles.profiles:
                 resolved = resolve_profile(self.service.config_profiles, name)
-                table.add_row(
-                    name,
-                    " -> ".join(resolved.chain),
-                    str(counts.get(name, 0)),
-                )
+                table.add_row(name, " -> ".join(resolved.chain), str(counts.get(name, 0)))
         except ConfigError as exc:
             self._summary(str(exc))
             return
@@ -341,10 +334,7 @@ class IntelTui(App[None]):
         for image in self.images:
             if folded and folded not in _haystack(image):
                 continue
-            table.add_row(
-                *(_cell(image, label) for label in fields),
-                key=_image_key(image),
-            )
+            table.add_row(*(_cell(image, label) for label in fields), key=_image_key(image))
 
 
 def run_tui(service: LoadedConfig, view: str | None = None) -> None:
@@ -372,10 +362,7 @@ def _title(image: ImageView) -> Text:
     return _painted(image, "Package", detail=True)
 
 
-def _detail_lines(
-    image: ImageView,
-    fields: tuple[str, ...] | None,
-) -> list[tuple[str, Text]]:
+def _detail_lines(image: ImageView, fields: tuple[str, ...] | None) -> list[tuple[str, Text]]:
     rows = detail_rows(image)
     if fields is not None:
         chosen = set(fields)
@@ -388,12 +375,7 @@ def _painted(image: ImageView, label: str, *, detail: bool) -> Text:
 
 
 def _paint(image: ImageView, label: str, value: str) -> Text:
-    return paint(
-        label,
-        value,
-        status=image.status,
-        metadata_error=image.metadata_error,
-    )
+    return paint(label, value, status=image.status, metadata_error=image.metadata_error)
 
 
 def _cell(image: ImageView, label: str) -> Text:
@@ -415,24 +397,9 @@ def _images(service: LoadedConfig) -> list[ImageView]:
     return [_image(service, package, database, now) for package in service.packages]
 
 
-def _image(
-    service: LoadedConfig,
-    package: PackageSpec,
-    database: Database,
-    now: float,
-) -> ImageView:
-    profile = resolve_profile(
-        service.config_profiles,
-        package.profile,
-        package.checks,
-    )
-    return build_view(
-        service.config,
-        package,
-        profile,
-        _documents(database, package),
-        now=now,
-    )
+def _image(service: LoadedConfig, package: PackageSpec, database: Database, now: float) -> ImageView:
+    profile = resolve_profile(service.config_profiles, package.profile, package.checks)
+    return build_view(service.config, package, profile, _documents(database, package), now=now)
 
 
 def _documents(database: Database, package: PackageSpec) -> list[Document]:
